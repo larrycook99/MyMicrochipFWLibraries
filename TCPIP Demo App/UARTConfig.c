@@ -46,9 +46,7 @@
  * (INCLUDING NEGLIGENCE), BREACH OF WARRANTY, OR OTHERWISE.
  *
  *
- * Author               Date      Comment
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * E. Wood     			4/26/08	  Moved from MainDemo.c
+ * V5.36 ---- STACK_USE_MPFS has been removed and DownloadMPFS has upgraded to MPFS2
  ********************************************************************/
 #define __UARTCONFIG_C
 
@@ -60,7 +58,7 @@
 #include "MainDemo.h"
 
 
-#if (defined(MPFS_USE_EEPROM) || defined(MPFS_USE_SPI_FLASH)) && defined(STACK_USE_MPFS)
+#if (defined(MPFS_USE_EEPROM) || defined(MPFS_USE_SPI_FLASH)) && defined(STACK_USE_MPFS2)
 	static BOOL DownloadMPFS(void);
 #endif
 
@@ -168,7 +166,7 @@ ReadIPConfig:
 		        break;
 		
 		    case '9':
-				#if defined(MPFS_USE_EEPROM) && defined(STACK_USE_MPFS)
+				#if (defined(MPFS_USE_EEPROM)|| defined(MPFS_USE_SPI_FLASH)) && defined(STACK_USE_MPFS2)
 		        	DownloadMPFS();
 				#endif
 		        break;
@@ -187,7 +185,7 @@ ReadIPConfig:
 }
 
 
-#if defined(MPFS_USE_EEPROM) && defined(STACK_USE_MPFS)
+#if (defined(MPFS_USE_EEPROM)|| defined(MPFS_USE_SPI_FLASH)) && defined(STACK_USE_MPFS2)
 /*********************************************************************
  * Function:        BOOL DownloadMPFS(void)
  *
@@ -226,7 +224,7 @@ ReadIPConfig:
 #define XMODEM_CAN      0x18u
 #define XMODEM_BLOCK_LEN 128u
 //////////////////////////////////////////////////////////////////////////////////////////
-// NOTE: The following XMODEM code pretains to MPFS Classic.
+// NOTE: The following XMODEM code has been upgarded to MPFS2 from MPFS Classic.
 //       Upgrading to HTTP2 and MPFS2 is *strongly* recommended for all new designs.
 //       MPFS2 images can be uploaded directly using the MPFS2.exe tool.
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -241,9 +239,9 @@ static BOOL DownloadMPFS(void)
     } state;
 
     BYTE c;
-    MPFS handle;
+    MPFS_HANDLE handle;
     BOOL lbDone;
-    BYTE blockLen;
+    BYTE blockLen=0;
     BYTE lResult;
     BYTE tempData[XMODEM_BLOCK_LEN];
     DWORD lastTick;
@@ -302,7 +300,7 @@ static BOOL DownloadMPFS(void)
                 // Turn off LED when we are done.
                 LED6_IO = 1;
 
-                MPFSClose();
+                MPFSClose(handle);
 				while(BusyUART());
                 WriteUART(XMODEM_ACK);
                 lbDone = TRUE;
@@ -336,14 +334,11 @@ static BOOL DownloadMPFS(void)
             if ( blockLen > XMODEM_BLOCK_LEN )
             {
 
-                // We have one block data. Write it to EEPROM.
-                MPFSPutBegin(handle);
-
                 lResult = XMODEM_ACK;
                 for ( c = 0; c < XMODEM_BLOCK_LEN; c++ )
-                    MPFSPut(tempData[c]);
-
-                handle = MPFSPutEnd();
+					MPFSPutArray(handle,&tempData[c],1);
+                    
+                MPFSPutEnd(handle);
 
 				while(BusyUART());
                 WriteUART(lResult);
@@ -357,6 +352,6 @@ static BOOL DownloadMPFS(void)
 
     return TRUE;
 }
-#endif	// #if defined(MPFS_USE_EEPROM) && defined(STACK_USE_MPFS)
+#endif	// #if defined(MPFS_USE_EEPROM) && defined(STACK_USE_MPFS2)
 
 #endif //#if defined(STACK_USE_UART)

@@ -43,32 +43,29 @@ del "..\Microchip\TCPIP Stack\*.p1" /f /q
 del "Makefile" /f /q
 del "a.out" /f /q
 rmdir "TempOBJ" /s /q
-rmdir "Objects - TCPIP Demo App - C18 - PIC18_EXPLORER_ENC28J60" /s /q
-rmdir "Objects - TCPIP Demo App - C18 - PIC18_EXPLORER_ENC624J600" /s /q
-rmdir "Objects - TCPIP Demo App - C18 - PIC18_EXPLORER_MRF24WB0M" /s /q
-rmdir "Objects - TCPIP Demo App - C18 - PICDEMNET2_ENC624J600" /s /q
-rmdir "Objects - TCPIP Demo App - C18 - PICDEMNET2_INTERNAL_ETHERNET" /s /q
-rmdir "Objects - TCPIP Demo App - C18 - PICDEMNET2_MRF24WB0M" /s /q
-rmdir "Objects - TCPIP Demo App - C18 - PICDEMNET2_ONBOARD_ENC28J60" /s /q
-rmdir "Objects - TCPIP Demo App - C30 - EXPLORER_16_ENC28J60" /s /q
-rmdir "Objects - TCPIP Demo App - C30 - EXPLORER_16_ENC624J600" /s /q
-rmdir "Objects - TCPIP Demo App - C30 - EXPLORER_16_MRF24WB0M" /s /q
-rmdir "Objects - TCPIP Demo App - C30 - PIC24FJ256DA210_DEV_BOARD_ENC28J60" /s /q
-rmdir "Objects - TCPIP Demo App - C30 - PIC24FJ256DA210_DEV_BOARD_ENC624J600" /s /q
-rmdir "Objects - TCPIP Demo App - C30 - PIC24FJ256DA210_DEV_BOARD_MRF24WB0M" /s /q
-rmdir "Objects - TCPIP Demo App - C32 - EXPLORER_16_ENC28J60" /s /q
-rmdir "Objects - TCPIP Demo App - C32 - EXPLORER_16_ENC624J600" /s /q
-rmdir "Objects - TCPIP Demo App - C32 - EXPLORER_16_MRF24WB0M" /s /q
-rmdir "Objects - TCPIP Demo App - C32 - PIC32_ENET_SK_DM320004_INTERNAL_ETHERNET" /s /q
-rmdir "Objects - TCPIP Demo App - C32 - PIC32_GP_SK_DM320001_ENC28J60" /s /q
-rmdir "Objects - TCPIP Demo App - C32 - PIC32_GP_SK_DM320001_ENC624J600" /s /q
-rmdir "Objects - TCPIP Demo App - C32 - PIC32_GP_SK_DM320001_MRF24WB0M" /s /q
-rmdir "Objects - TCPIP Demo App - C32 - PIC32_USB_DM320003_1_ENC28J60" /s /q
-rmdir "Objects - TCPIP Demo App - C32 - PIC32_USB_DM320003_1_ENC624J600" /s /q
-rmdir "Objects - TCPIP Demo App - C32 - PIC32_USB_DM320003_1_MRF24WB0M" /s /q
-rmdir "Objects - TCPIP Demo App - C32 - PIC32_USB_SK_DM320003_2_ENC28J60" /s /q
-rmdir "Objects - TCPIP Demo App - C32 - PIC32_USB_SK_DM320003_2_ENC624J600" /s /q
-rmdir "Objects - TCPIP Demo App - C32 - PIC32_USB_SK_DM320003_2_MRF24WB0M" /s /q
+rmdir "Obj-C18-PIC18EX_ENC28" /s /q
+rmdir "Obj-C18-PIC18EX_ENC624" /s /q
+rmdir "Obj-C18-PIC18EX_MRF24WB" /s /q
+rmdir "Obj-C18-PICDN2_ENC624" /s /q
+rmdir "Obj-C18-PICDN2_ETH97" /s /q
+rmdir "Obj-C18-PICDN2_MRF24WB" /s /q
+rmdir "Obj-C18-PICDN2_ENC28" /s /q
+rmdir "Obj-C30-EX16_ENC28" /s /q
+rmdir "Obj-C30-EX16_ENC624" /s /q
+rmdir "Obj-C30-EX16_MRF24WB" /s /q
+rmdir "Obj-C30-DA210_BRD_ENC28" /s /q
+rmdir "Obj-C30-DA210_BRD_ENC624" /s /q
+rmdir "Obj-C30-DA210_BRD_MRF24WB" /s /q
+rmdir "Obj-C32-EX16_ENC28" /s /q
+rmdir "Obj-C32-EX16_ENC624" /s /q
+rmdir "Obj-C32-EX16_MRF24WB" /s /q
+rmdir "Obj-C32-PIC32_ETH_SK_ETH795" /s /q
+rmdir "Obj-C32-PIC32_GP_SK_ENC28" /s /q
+rmdir "Obj-C32-PIC32_GP_SK_ENC624" /s /q
+rmdir "Obj-C32-PIC32_GP_SK_MRF24WB" /s /q
+rmdir "Obj-C32-PIC32_USB_SK_ENC28" /s /q
+rmdir "Obj-C32-PIC32_USB_SK_ENC624" /s /q
+rmdir "Obj-C32-PIC32_USB_SK_MRF24WB" /s /q
 rmdir "..\Microchip\TCPIP Stack\Utilities\Source\Microchip Ethernet Discoverer\publish" /s /q
 rmdir "..\Microchip\TCPIP Stack\Utilities\Source\Microchip Ethernet Discoverer\obj" /s /q
 rmdir "..\Microchip\TCPIP Stack\Utilities\Source\Microchip Ethernet Discoverer\bin\Debug" /s /q

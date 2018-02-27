@@ -45,43 +45,12 @@
  * SIMILAR COSTS, WHETHER ASSERTED ON THE BASIS OF CONTRACT, TORT
  * (INCLUDING NEGLIGENCE), BREACH OF WARRANTY, OR OTHERWISE.
  *
- *
- * Author              Date         Comment
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * Nilesh Rajbharti		4/19/01		Original (Rev. 1.0)
- * Nilesh Rajbharti		2/09/02		Cleanup
- * Nilesh Rajbharti		5/22/02		Rev 2.0 (See version.log for detail)
- * Nilesh Rajbharti		7/9/02		Rev 2.1 (See version.log for detail)
- * Nilesh Rajbharti		4/7/03		Rev 2.11.01 (See version log for detail)
- * Howard Schlunder		10/1/04		Beta Rev 0.9 (See version log for detail)
- * Howard Schlunder		10/8/04		Beta Rev 0.9.1 Announce support added
- * Howard Schlunder		11/29/04	Beta Rev 0.9.2 (See version log for detail)
- * Howard Schlunder		2/10/05		Rev 2.5.0
- * Howard Schlunder		1/5/06		Rev 3.00
- * Howard Schlunder		1/18/06		Rev 3.01 ENC28J60 fixes to TCP, 
- *									UDP and ENC28J60 files
- * Howard Schlunder		3/01/06		Rev. 3.16 including 16-bit micro support
- * Howard Schlunder		4/12/06		Rev. 3.50 added LCD for Explorer 16
- * Howard Schlunder		6/19/06		Rev. 3.60 finished dsPIC30F support, added PICDEM.net 2 support
- * Howard Schlunder		8/02/06		Rev. 3.75 added beta DNS, NBNS, and HTTP client (GenericTCPClient.c) services
- * Howard Schlunder		12/28/06	Rev. 4.00RC added SMTP, Telnet, substantially modified TCP layer
- * Howard Schlunder		04/09/07	Rev. 4.02 added TCPPerformanceTest, UDPPerformanceTest, Reboot and fixed some bugs
- * Howard Schlunder		xx/xx/07	Rev. 4.03
- * HSchlunder & EWood	08/27/07	Rev. 4.11
- * HSchlunder & EWood	10/08/07	Rev. 4.13
- * HSchlunder & EWood	11/06/07	Rev. 4.16
- * HSchlunder & EWood	11/08/07	Rev. 4.17
- * HSchlunder & EWood	11/12/07	Rev. 4.18
- * HSchlunder & EWood	02/11/08	Rev. 4.19
- * HSchlunder & EWood   04/26/08    Rev. 4.50 Moved most code to other files for clarity
- * KHesky               07/07/08    Added ZG2100-specific support
- * HSchlunder & EWood   07/24/08    Rev. 4.51
- * Howard Schlunder		11/10/08    Rev. 4.55
- * Howard Schlunder		04/14/09    Rev. 5.00
- * Howard Schlunder		07/10/09    Rev. 5.10
- * Howard Schlunder		11/18/09    Rev. 5.20
- * Howard Schlunder		04/28/10    Rev. 5.25
- * Howard Schlunder		10/19/10	Rev. 5.31
+ * File Description:
+ * Change History:
+ * Rev   Description
+ * ----  -----------------------------------------
+ * 1.0   Initial release
+ * V5.36 ---- STACK_USE_MPFS support has been removed 
  ********************************************************************/
 /*
  * This macro uniquely defines this file as the main entry point.
@@ -203,6 +172,10 @@ int main(void)
 {
 	static DWORD t = 0;
 	static DWORD dwLastIP = 0;
+	#if defined(WF_USE_POWER_SAVE_FUNCTIONS)
+	BOOL  PsPollEnabled;
+	BOOL  psConfDone = FALSE;
+	#endif
 
 	// Initialize application specific hardware
 	InitializeBoard();
@@ -219,7 +192,7 @@ int main(void)
 	// Initialize stack-related hardware components that may be 
 	// required by the UART configuration routines
     TickInit();
-	#if defined(STACK_USE_MPFS) || defined(STACK_USE_MPFS2)
+	#if defined(STACK_USE_MPFS2)
 	MPFSInit();
 	#endif
 
@@ -316,6 +289,25 @@ int main(void)
     // down into smaller pieces so that other tasks can have CPU time.
     while(1)
     {
+	#if defined(WF_USE_POWER_SAVE_FUNCTIONS)
+		if (!psConfDone && WFisConnected()) {	
+			PsPollEnabled = (MY_DEFAULT_PS_POLL == WF_ENABLED);
+			if (!PsPollEnabled) {	 
+				/* disable low power (PS-Poll) mode */
+				#if defined(STACK_USE_UART)
+				putrsUART("Disable PS-Poll\r\n");		 
+				#endif
+				WF_PsPollDisable();
+			} else {
+				/* Enable low power (PS-Poll) mode */
+				#if defined(STACK_USE_UART)
+				putrsUART("Enable PS-Poll\r\n");		
+				#endif
+				WF_PsPollEnable(TRUE);
+			}	
+			psConfDone = TRUE;
+		}
+	#endif
         // Blink LED0 (right most one) every second.
         if(TickGet() - t >= TICK_SECOND/2ul)
         {
@@ -430,9 +422,6 @@ static void WF_Connect(void)
 {
     UINT8 ConnectionProfileID;
     UINT8 channelList[] = MY_DEFAULT_CHANNEL_LIST;
-    #if defined(WF_USE_POWER_SAVE_FUNCTIONS)
-    BOOL  PsPollEnabled;
-    #endif
     
     /* create a Connection Profile */
     WF_CPCreate(&ConnectionProfileID);
@@ -464,33 +453,33 @@ static void WF_Connect(void)
     #if defined(STACK_USE_UART)
     putrsUART("Set list retry count\r\n");
     #endif
-    WF_CASetListRetryCount(MY_DEFAULT_LIST_RETRY_COUNT);
+    // The Retry Count parameter tells the WiFi Connection manager how many attempts to make when trying
+    // to connect to an existing network.  In the Infrastructure case, the default is to retry forever so that
+    // if the AP is turned off or out of range, the radio will continue to attempt a connection until the
+    // AP is eventually back on or in range.  In the Adhoc case, the default is to retry 3 times since the 
+    // purpose of attempting to establish a network in the Adhoc case is only to verify that one does not
+    // initially exist.  If the retry count was set to WF_RETRY_FOREVER in the AdHoc mode, an AdHoc network
+    // would never be established.  The constants MY_DEFAULT_LIST_RETRY_COUNT_ADHOC and 
+    // MY_DEFAULT_LIST_RETRY_COUNT_INFRASTRUCTURE have been created specifically for the June 2011 MAL release.
+    #if defined(EZ_CONFIG_STORE)
+        if (AppConfig.networkType == WF_ADHOC)
+            WF_CASetListRetryCount(MY_DEFAULT_LIST_RETRY_COUNT_ADHOC);
+        else
+            WF_CASetListRetryCount(MY_DEFAULT_LIST_RETRY_COUNT_INFRASTRUCTURE);
+    #else
+        #if (MY_DEFAULT_NETWORK_TYPE == WF_ADHOC)
+            WF_CASetListRetryCount(MY_DEFAULT_LIST_RETRY_COUNT_ADHOC);
+        #else
+            WF_CASetListRetryCount(MY_DEFAULT_LIST_RETRY_COUNT_INFRASTRUCTURE);
+        #endif
+    #endif
+    
 
     #if defined(STACK_USE_UART)        
     putrsUART("Set Event Notify\r\n");    
     #endif
     WF_CASetEventNotificationAction(MY_DEFAULT_EVENT_NOTIFICATION_LIST);
     
-#if defined(WF_USE_POWER_SAVE_FUNCTIONS)
-    PsPollEnabled = (MY_DEFAULT_PS_POLL == WF_ENABLED);
-    if (!PsPollEnabled)
-    {    
-        /* disable low power (PS-Poll) mode */
-        #if defined(STACK_USE_UART)
-        putrsUART("Disable PS-Poll\r\n");        
-        #endif
-        WF_PsPollDisable();
-    }    
-    else
-    {
-        /* Enable low power (PS-Poll) mode */
-        #if defined(STACK_USE_UART)
-        putrsUART("Enable PS-Poll\r\n");        
-        #endif
-        WF_PsPollEnable(TRUE);
-    }    
-#endif
-
     #if defined(STACK_USE_UART)
     putrsUART("Set Beacon Timeout\r\n");
     #endif
@@ -551,7 +540,12 @@ static void WF_Connect(void)
 void DisplayIPValue(IP_ADDR IPVal)
 {
 //	printf("%u.%u.%u.%u", IPVal.v[0], IPVal.v[1], IPVal.v[2], IPVal.v[3]);
+#if defined (__dsPIC33E__) || defined (__PIC24E__)
+	static BYTE IPDigit[4];    					/* Needs to be declared as static to avoid the array getting optimized by C30 v3.30 compiler for dsPIC33E/PIC24E. 
+												   Otherwise the LCD displays corrupted IP address on Explorer 16. To be fixed in the future compiler release*/
+#else
     BYTE IPDigit[4];
+#endif
 	BYTE i;
 #ifdef USE_LCD
 	BYTE j;
@@ -756,6 +750,69 @@ static void InitializeBoard(void)
 	    AD1CHS0 = 0;				// Input to AN0 (potentiometer)
 		AD1PCFGLbits.PCFG5 = 0;		// Disable digital input on AN5 (potentiometer)
 		AD1PCFGLbits.PCFG4 = 0;		// Disable digital input on AN4 (TC1047A temp sensor)
+
+
+	#elif defined(__dsPIC33E__)||defined(__PIC24E__)
+
+		// Crank up the core frequency
+		PLLFBD = 38;				/* M  = 30	*/
+		CLKDIVbits.PLLPOST = 0;		/* N1 = 2	*/
+		CLKDIVbits.PLLPRE = 0;		/* N2 = 2	*/
+		OSCTUN = 0;	
+		
+	    /*	Initiate Clock Switch to Primary
+	     *	Oscillator with PLL (NOSC= 0x3)*/
+	    __builtin_write_OSCCONH(0x03);		
+		__builtin_write_OSCCONL(0x01);
+		// Disable Watch Dog Timer
+	    RCONbits.SWDTEN = 0;
+		while (OSCCONbits.COSC != 0x3); 
+		while (_LOCK == 0);			/* Wait for PLL lock at 60 MIPS */		
+		// Port I/O
+		ANSELAbits.ANSA7 = 0 ;   //Make RA7 (BUTTON1) a digital input
+		#if defined ENC100_INTERFACE_MODE > 0
+			ANSELEbits.ANSE0 = 0;      // Make these PMP pins as digital output when the interface is parallel.
+			ANSELEbits.ANSE1 = 0;
+			ANSELEbits.ANSE2 = 0;
+			ANSELEbits.ANSE3 = 0;	
+			ANSELEbits.ANSE4 = 0;
+			ANSELEbits.ANSE5 = 0;
+			ANSELEbits.ANSE6 = 0;
+			ANSELEbits.ANSE7 = 0;	
+			ANSELBbits.ANSB10 = 0;
+			ANSELBbits.ANSB11 = 0;
+			ANSELBbits.ANSB12 = 0;
+			ANSELBbits.ANSB13 = 0;
+			ANSELBbits.ANSB15 = 0;
+		#endif
+
+		ANSELEbits.ANSE8= 0 ;    // Make RE8(INT1) a digital input for ZeroG ZG2100M PICtail 
+					
+		AD1CHS0 = 0;		     // Input to AN0 (potentiometer)
+		ANSELBbits.ANSB0= 1;     // Input to AN0 (potentiometer)
+		ANSELBbits.ANSB5= 1;     // Disable digital input on AN5 (potentiometer)
+		ANSELBbits.ANSB4= 1;     // Disable digital input on AN4 (TC1047A temp sensor)
+					
+		ANSELDbits.ANSD7 =0;     //  Digital Pin Selection for S3(Pin 83) and S4(pin 84).
+		ANSELDbits.ANSD6 =0;
+			
+		ANSELGbits.ANSG6 =0;     // Enable Digital input for RG6 (SCK2)
+		ANSELGbits.ANSG7 =0;     // Enable Digital input for RG7 (SDI2)
+		ANSELGbits.ANSG8 =0;     // Enable Digital input for RG8 (SDO2)
+		ANSELGbits.ANSG9 =0;     // Enable Digital input for RG9 (CS)
+				
+		#if defined ENC100_INTERFACE_MODE == 0	// SPI Interface, UART can be used for debugging. Not allowed for other interfaces.
+			RPOR9 = 0x0300;          //RP101= U2TX
+			RPINR19 = 0X0064;  		 //RP100= U2RX
+		#endif
+
+		#if defined WF_CS_TRIS
+			RPINR1bits.INT3R = 30;
+			WF_CS_IO = 1;
+			WF_CS_TRIS = 0;		
+
+		#endif
+
 	#else	//defined(__PIC24F__) || defined(__PIC32MX__)
 		#if defined(__PIC24F__)
 			CLKDIVbits.RCDIV = 0;		// Set 1:1 8MHz FRC postscalar
@@ -794,6 +851,25 @@ static void InitializeBoard(void)
 
 	// UART
 	#if defined(STACK_USE_UART)
+
+		#if defined(__PIC24E__) || defined(__dsPIC33E__)
+			#if defined (ENC_CS_IO) || defined (WF_CS_IO)   // UART to be used in case of ENC28J60 or MRF24WB0M
+				__builtin_write_OSCCONL(OSCCON & 0xbf);
+				RPOR9bits.RP101R = 3; //Map U2TX to RF5
+				RPINR19bits.U2RXR = 0;
+				RPINR19bits.U2RXR = 0x64; //Map U2RX to RF4
+				__builtin_write_OSCCONL(OSCCON | 0x40);
+			#endif
+			#if(ENC100_INTERFACE_MODE == 0)                 // UART to be used only in case of SPI interface with ENC624Jxxx
+					__builtin_write_OSCCONL(OSCCON & 0xbf);
+				RPOR9bits.RP101R = 3; //Map U2TX to RF5
+				RPINR19bits.U2RXR = 0;
+				RPINR19bits.U2RXR = 0x64; //Map U2RX to RF4
+				__builtin_write_OSCCONL(OSCCON | 0x40);
+
+			#endif
+		#endif
+
 		UARTTX_TRIS = 0;
 		UARTRX_TRIS = 1;
 		UMODE = 0x8000;			// Set UARTEN.  Note: this must be done before setting UTXEN
@@ -1171,7 +1247,7 @@ void SaveAppConfig(const APP_CONFIG *ptrAppConfig)
 	// store the entire AppConfig structure.  If you get stuck in this while(1) 
 	// trap, it means you have a design time misconfiguration in TCPIPConfig.h.
 	// You must increase MPFS_RESERVE_BLOCK to allocate more space.
-	#if defined(STACK_USE_MPFS) || defined(STACK_USE_MPFS2)
+	#if defined(STACK_USE_MPFS2)
 		if(sizeof(NVMValidationStruct) + sizeof(AppConfig) > MPFS_RESERVE_BLOCK)
 			while(1);
 	#endif

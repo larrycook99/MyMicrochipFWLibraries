@@ -98,9 +98,10 @@
 
 #define MY_DEFAULT_SCAN_TYPE                WF_ACTIVE_SCAN      /* WF_ACTIVE_SCAN or WF_PASSIVE_SCAN */
 
-#define MY_DEFAULT_CHANNEL_LIST             {1,6,11}            /* use {} to scan all channels       */
+#define MY_DEFAULT_CHANNEL_LIST             {1,6,11}            /* Desired channel list             */
 
-#define MY_DEFAULT_LIST_RETRY_COUNT         (3)
+#define MY_DEFAULT_LIST_RETRY_COUNT_ADHOC           (3)                 /* Number of times to try to connect to the SSID when using Ad/Hoc network type */
+#define MY_DEFAULT_LIST_RETRY_COUNT_INFRASTRUCTURE  (WF_RETRY_FOREVER)  /* Number of times to try to connect to the SSID when using Infrastructure network type */
 
 #define MY_DEFAULT_EVENT_NOTIFICATION_LIST  (WF_NOTIFY_CONNECTION_ATTEMPT_SUCCESSFUL  |         \
                                              WF_NOTIFY_CONNECTION_ATTEMPT_FAILED      |         \

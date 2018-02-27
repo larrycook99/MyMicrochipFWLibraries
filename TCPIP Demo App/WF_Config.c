@@ -71,6 +71,29 @@
     #define WF_MODULE_NUMBER    WF_MODULE_WF_CONFIG
 #endif
 
+#if defined(STACK_USE_UART)
+    static ROM char *connectionFailureStrings[] = {
+                                             "NULL",                                  /* 0 - not used */
+                                             "NULL",                                  /* 1 - not used */
+                                             "WF_JOIN_FAILURE",                       /* 2            */
+                                             "WF_AUTHENTICATION_FAILURE",             /* 3            */
+                                             "WF_ASSOCIATION_FAILURE",                /* 4            */
+                                             "WF_WEP_HANDSHAKE_FAILURE",              /* 5            */
+                                             "WF_PSK_CALCULATION_FAILURE",            /* 6            */
+                                             "WF_PSK_HANDSHAKE_FAILURE",              /* 7            */
+                                             "WF_ADHOC_JOIN_FAILURE",                 /* 8            */
+                                             "WF_SECURITY_MISMATCH_FAILURE",          /* 9            */
+                                             "WF_NO_SUITABLE_AP_FOUND_FAILURE",       /* 10           */
+                                             "WF_RETRY_FOREVER_NOT_SUPPORTED_FAILURE",/* 11           */
+                                          };                                      
+    
+    static ROM char *connectionLostStrings[] = {
+                                            "Association Failure",      /* 0 */
+                                            "WF_BEACON_TIMEOUT",        /* 1 */
+                                            "WF_DEAUTH_RECEIVED",       /* 2 */
+                                            "WF_DISASSOCIATE_RECEIVED", /* 3 */
+                                        };                                    
+#endif
 
 /*****************************************************************************
  * FUNCTION: WF_ProcessEvent
@@ -125,8 +148,10 @@ void WF_ProcessEvent(UINT8 event, UINT16 eventInfo)
             /* eventInfo will contain value from tWFConnectionFailureCodes */
             #if defined(STACK_USE_UART)
             putrsUART("Event: Connection Failed  -- eventInfo = ");
-            sprintf(buf, "%d\r\n", eventInfo);
+            sprintf(buf, "%d, ", eventInfo);
             putsUART(buf);
+            putrsUART(connectionFailureStrings[eventInfo]);
+            putrsUART("\r\n");
             #endif
             break; 
             
@@ -136,8 +161,10 @@ void WF_ProcessEvent(UINT8 event, UINT16 eventInfo)
             /* eventInfo will contain value from tWFConnectionLostCodes */
             #if defined(STACK_USE_UART)
             putrsUART("Event: Connection Temporarily Lost -- eventInfo = ");
-            sprintf(buf, "%d\r\n", eventInfo);
+            sprintf(buf, "%d, ", eventInfo);
             putsUART(buf);
+            putrsUART(connectionLostStrings[eventInfo]);
+            putrsUART("\r\n");
             #endif
             break;
             
@@ -147,8 +174,10 @@ void WF_ProcessEvent(UINT8 event, UINT16 eventInfo)
             /* eventInfo will contain value from tWFConnectionLostCodes */
             #if defined(STACK_USE_UART)       
             putrsUART("Event: Connection Permanently Lost -- eventInfo = ");
-            sprintf(buf, "%d\r\n", eventInfo);
+            sprintf(buf, "%d, ", eventInfo);
             putsUART(buf);
+            putrsUART(connectionLostStrings[eventInfo]);
+            putrsUART("\r\n");
             #endif
             break;
 
@@ -165,7 +194,7 @@ void WF_ProcessEvent(UINT8 event, UINT16 eventInfo)
         /*--------------------------------------*/  
             #if defined(STACK_USE_UART)
             putrsUART("Event: Scan Results Ready,");
-            sprintf(buf, "%d", eventInfo);
+            sprintf(buf, " %d", eventInfo);
             putsUART(buf);
             putrsUART("results\r\n");
 			#endif
@@ -218,14 +247,54 @@ void WF_ProcessEvent(UINT8 event, UINT16 eventInfo)
 */
 #if defined(WF_DEBUG)
 #define WIFI_ASSERT_STRING "WiFi Assert     M:"
+#define DISPLAY_FILENAME
 void WF_AssertionFailed(UINT8 moduleNumber, UINT16 lineNumber) 
 {
     #if defined(STACK_USE_UART)
-    char buf[8];
-    
-    putrsUART("WF ASSERTION: Module Number = ");
-    
-    sprintf(buf, "%d  ", moduleNumber);
+    char buf[64];
+#if defined(DISPLAY_FILENAME)
+	UINT16 moduleNameIdx;
+	static ROM char *moduleName[] = { 
+		"MainDemo.c",
+		"WF_Config.c",
+		"WF_Eint.c",
+		"WF_Spi.c",
+		"WFMac.c",
+		"WFParamMsg.c",
+		"WFConnectionProfile.c",
+		"WFConnectionAlgorithm.c",
+		"WFConnectionManager.c",
+		"WFDriverCom.c",
+		"WFInit.c",
+		"WFDriverRaw.c",
+		"WFMgmtMsg.c",
+		"WFMgmtMsgTest.c",
+		"WFTxPower.c",
+		"WFPowerSave.c",
+		"WFEventHandler.c",
+		"WFScan.c",
+		"WFDataTxRx",	
+		"IperfApp.c",
+		"WFHostBridge.c",
+		"WF_iperfClient.c",
+		"WF_iperfServer.c",
+		"WF_iperfCommon.c"
+	};
+#endif
+
+#if defined(DISPLAY_FILENAME)
+	putrsUART("WF ASSERTION at ");
+	if (moduleNumber < 100)
+		moduleNameIdx = moduleNumber;
+	else
+		moduleNameIdx = moduleNumber - 81;	/* to make index 19 */
+		
+    sprintf(buf, "%s  ", moduleName[moduleNameIdx]);
+#else
+	putrsUART("WF ASSERTION: Module Number = ");
+   	sprintf(buf, "%d  ", moduleNumber);
+#endif
+
     putsUART(buf);
     
     putrsUART("Line Number = ");

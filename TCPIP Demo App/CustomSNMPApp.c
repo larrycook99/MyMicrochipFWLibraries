@@ -264,6 +264,9 @@ void SNMPV2TrapDemo(void)
 	static BYTE potReadLock = FALSE;
 	static BYTE timeLock = FALSE;
 	static BYTE maxTryToSendTrap=0;
+#if defined(SNMP_V1_V2_TRAP_WITH_SNMPV3)	
+	static BYTE userIndex=0;
+#endif
 	UINT8		targetIndex = 0;
 	UINT8		retVal = 0;
 	
@@ -272,6 +275,15 @@ void SNMPV2TrapDemo(void)
 		tempTimerRead=TickGet();
 		timeLock=TRUE;
 	}
+/*
+	Specify SNMPV2 specific trap ID Here. Which will help Ireasoning and other SNMP manager tools to 
+	recognise the trap information and it will help the SNMP manager tool to decrypt the 
+	trap information. 
+
+	This ID is only related to trap ID. and this implementaion is only for TRAPv2 specific.
+*/
+
+	SNMPNotifyInfo.trapIDVar = SNMP_DEMO_TRAP;
 
 
 	for(;trapIndex<TRAP_TABLE_SIZE;trapIndex++)
@@ -313,7 +325,7 @@ void SNMPV2TrapDemo(void)
 			// then user should set gSetTrapSendFlag to FALSE.
 			//gSetTrapSendFlag = FALSE;
 #if defined(SNMP_V1_V2_TRAP_WITH_SNMPV3)	
-			for(targetIndex=0;targetIndex<SNMPV3_USM_MAX_USER;targetIndex++)
+			for(targetIndex=userIndex;targetIndex<SNMPV3_USM_MAX_USER;targetIndex++)
 			{
 #endif			
 				gSpecificTrapNotification = 1; //expecting 1 should be the specific trap.
@@ -332,6 +344,10 @@ void SNMPV2TrapDemo(void)
 				if(retVal == FALSE)
 #endif					
 				{
+#if defined(SNMP_V1_V2_TRAP_WITH_SNMPV3) // to keep tarck of the usr index for SNMPv3
+					userIndex = targetIndex;
+#endif
+				
 					if(maxTryToSendTrap >= MAX_TRY_TO_SEND_TRAP)
 					{
 						trapIndex++;
@@ -394,7 +410,9 @@ void SNMPV2TrapDemo(void)
 #else
 				SNMPNotify(LED_D5,analogPotVal,0);
 #endif
-#if defined(SNMP_V1_V2_TRAP_WITH_SNMPV3)	
+#if defined(SNMP_V1_V2_TRAP_WITH_SNMPV3)
+				if(userIndex == SNMPV3_USM_MAX_USER-1)
+					userIndex = 0;
 			}
 #endif			
 		}
@@ -456,6 +474,21 @@ void SNMPTrapDemo(void)
 	static BYTE maxTryToSendTrap=0;
 	UINT8		targetIndex;
 	BOOL		retVal=TRUE;
+#if defined(SNMP_V1_V2_TRAP_WITH_SNMPV3)	
+	static BYTE userIndex=0;
+#endif
+
+#if defined(SNMP_V1_V2_TRAP_WITH_SNMPV3) || defined(SNMP_STACK_USE_V2_TRAP)
+		/*
+			Specify SNMPV2 specific trap ID Here. Which will help Ireasoning and other SNMP manager tools to 
+			recognise the trap information and it will help the SNMP manager tool to decrypt the 
+			trap information. 
+		
+			This ID is only related to trap ID. and this implementaion is only for TRAPv2 specific.
+		*/
+		SNMPNotifyInfo.trapIDVar = SNMP_DEMO_TRAP;
+#endif
+
 
 	targetIndex = 0;
 	if(timeLock==(BYTE)FALSE)
@@ -498,7 +531,7 @@ void SNMPTrapDemo(void)
 			if(analogPotVal.word >12u)
 			{
 #if defined(SNMP_V1_V2_TRAP_WITH_SNMPV3)	
-				for(targetIndex=0;targetIndex<SNMPV3_USM_MAX_USER;targetIndex++)
+				for(targetIndex=userIndex;targetIndex<SNMPV3_USM_MAX_USER;targetIndex++)
 				{
 #endif			
 					gSpecificTrapNotification=POT_READING_MORE_512;
@@ -518,7 +551,10 @@ void SNMPTrapDemo(void)
 						anaPotNotfyCntr++;
 					else 
 #endif						
-					{					
+					{	
+#if defined(SNMP_V1_V2_TRAP_WITH_SNMPV3) // to keep tarck of the usr index for SNMPv3
+					userIndex = targetIndex;
+#endif
 						if(maxTryToSendTrap>=MAX_TRY_TO_SEND_TRAP)
 						{
 							anaPotNotfyCntr++;
@@ -528,7 +564,9 @@ void SNMPTrapDemo(void)
 						maxTryToSendTrap++;
 						return ;
 					}
-#if defined(SNMP_V1_V2_TRAP_WITH_SNMPV3)	
+#if defined(SNMP_V1_V2_TRAP_WITH_SNMPV3)
+					if(userIndex == SNMPV3_USM_MAX_USER-1)
+						userIndex = 0;
 				}
 #endif			
 			}
@@ -648,6 +686,20 @@ void SNMPSendTrap(void)
 	IP_ADDR remHostIPAddress,* remHostIpAddrPtr;
 	SNMP_VAL val;
 	static DWORD TimerRead;
+#if defined(SNMP_V1_V2_TRAP_WITH_SNMPV3)	
+	static BYTE userIndex=0;
+#endif
+
+#if defined(SNMP_V1_V2_TRAP_WITH_SNMPV3) || defined(SNMP_STACK_USE_V2_TRAP)
+	/*
+		Specify SNMPV2 specific trap ID Here. Which will help Ireasoning and other SNMP manager tools to 
+		recognise the trap information and it will help the SNMP manager tool to decrypt the 
+		trap information. 
+	
+		This ID is only related to trap ID. and this implementaion is only for TRAPv2 specific.
+	*/
+	SNMPNotifyInfo.trapIDVar = SNMP_DEMO_TRAP;
+#endif
 
 	static enum 
 	{
@@ -707,7 +759,7 @@ void SNMPSendTrap(void)
 		 		val.byte = 0;
 				receiverIndex++;
 #if defined(SNMP_V1_V2_TRAP_WITH_SNMPV3)	
-				for(targetIndex=0;targetIndex<SNMPV3_USM_MAX_USER;targetIndex++)
+				for(targetIndex=userIndex;targetIndex<SNMPV3_USM_MAX_USER;targetIndex++)
 				{
 					if((gSnmpv3TrapConfigData[targetIndex].messageProcessingModelType == SNMPV3_MSG_PROCESSING_MODEL)
 						&& (gSnmpv3TrapConfigData[targetIndex].securityModelType == SNMPV3_USM_SECURITY_MODEL))
@@ -1458,7 +1510,7 @@ BOOL SNMPIdRecrdValidation(PDU_INFO * pduPtr,OID_INFO *var,BYTE * oidValuePtr,BY
 				(gSnmpNonMibRecInfo[i].version == SNMP_V3))
 				continue;
 			
-			size = strlen(gSnmpNonMibRecInfo[i].oidstr);
+			size = strlen((char*)gSnmpNonMibRecInfo[i].oidstr);
 			if( size <= oidLen)
 				len = size;
 			else

@@ -43,10 +43,10 @@ del "..\Microchip\TCPIP Stack\*.p1" /f /q
 del "Makefile" /f /q
 del "a.out" /f /q
 rmdir "TempOBJ" /s /q
-rmdir "Objects - TCPIP WiFi Console Demo App - C18 - PICDEMNET2_MRF24WB0M" /s /q
-rmdir "Objects - TCPIP WiFi Console Demo App - C30 - EXPLORER_16_MRF24WB0M" /s /q
-rmdir "Objects - TCPIP WiFi Console Demo App - C30 - PIC24FJ256DA210_DEV_BOARD_MRF24WB0M" /s /q
-rmdir "Objects - TCPIP WiFi Console Demo App - C32 - EXPLORER_16_MRF24WB0M" /s /q
+rmdir "Obj-WiFi Console-C18-PICDN2_MRF24WB" /s /q
+rmdir "Obj-WiFi Console-C30-EX16_MRF24WB" /s /q
+rmdir "Obj-WiFi Console-C30-DA210_BRD_MRF24WB" /s /q
+rmdir "Obj-WiFi Console-C32-EX16_MRF24WB" /s /q
 rmdir "..\Microchip\TCPIP Stack\Utilities\Source\Microchip Ethernet Discoverer\publish" /s /q
 rmdir "..\Microchip\TCPIP Stack\Utilities\Source\Microchip Ethernet Discoverer\obj" /s /q
 rmdir "..\Microchip\TCPIP Stack\Utilities\Source\Microchip Ethernet Discoverer\bin\Debug" /s /q

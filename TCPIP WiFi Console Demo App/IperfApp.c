@@ -767,7 +767,7 @@ StateMachineRxStart(void)
 
       case kIperfProtoUDP:	// UDP
 
-           if ( (APPCTX.udpSock = UDPOpen(APPCTX.mServerPort, NULL, APPCTX.mServerPort)) == INVALID_UDP_SOCKET )
+           if ( (APPCTX.udpSock = UDPOpenEx(0, UDP_OPEN_SERVER, APPCTX.mServerPort, 0)) == INVALID_UDP_SOCKET )
            {
                /* error case */
                WFConsolePrintRomStr("Create UDP socket failed", TRUE);
@@ -958,19 +958,19 @@ StateMachineUdpRx(void)
           WFConsolePrintRamStr( (char *) g_ConsoleContext.txBuf , TRUE);
 
           sprintf((char *) g_ConsoleContext.txBuf,"    - Remote %u.%u.%u.%u port %u",
-                           UDPSocketInfo[APPCTX.udpSock].remoteNode.IPAddr.v[0],
-                           UDPSocketInfo[APPCTX.udpSock].remoteNode.IPAddr.v[1],
-                           UDPSocketInfo[APPCTX.udpSock].remoteNode.IPAddr.v[2],
-                           UDPSocketInfo[APPCTX.udpSock].remoteNode.IPAddr.v[3],
+                           UDPSocketInfo[APPCTX.udpSock].remote.remoteNode.IPAddr.v[0],
+                           UDPSocketInfo[APPCTX.udpSock].remote.remoteNode.IPAddr.v[1],
+                           UDPSocketInfo[APPCTX.udpSock].remote.remoteNode.IPAddr.v[2],
+                           UDPSocketInfo[APPCTX.udpSock].remote.remoteNode.IPAddr.v[3],
                            UDPSocketInfo[APPCTX.udpSock].remotePort );
 
           WFConsolePrintRamStr( (char *) g_ConsoleContext.txBuf , TRUE);
 
           // Store the remote info so we can send the iperf "UDP-FIN-ACK" msg
-          APPCTX.remoteSide.remote.IPAddr.v[0] = UDPSocketInfo[APPCTX.udpSock].remoteNode.IPAddr.v[0];
-          APPCTX.remoteSide.remote.IPAddr.v[1] = UDPSocketInfo[APPCTX.udpSock].remoteNode.IPAddr.v[1];
-          APPCTX.remoteSide.remote.IPAddr.v[2] = UDPSocketInfo[APPCTX.udpSock].remoteNode.IPAddr.v[2];
-          APPCTX.remoteSide.remote.IPAddr.v[3] = UDPSocketInfo[APPCTX.udpSock].remoteNode.IPAddr.v[3];
+          APPCTX.remoteSide.remote.IPAddr.v[0] = UDPSocketInfo[APPCTX.udpSock].remote.remoteNode.IPAddr.v[0];
+          APPCTX.remoteSide.remote.IPAddr.v[1] = UDPSocketInfo[APPCTX.udpSock].remote.remoteNode.IPAddr.v[1];
+          APPCTX.remoteSide.remote.IPAddr.v[2] = UDPSocketInfo[APPCTX.udpSock].remote.remoteNode.IPAddr.v[2];
+          APPCTX.remoteSide.remote.IPAddr.v[3] = UDPSocketInfo[APPCTX.udpSock].remote.remoteNode.IPAddr.v[3];
 
           APPCTX.remoteSide.remotePort.Val =  UDPSocketInfo[APPCTX.udpSock].remotePort;
 
@@ -1263,8 +1263,7 @@ StateMachineTxArpResolve(void)
 static void
 StateMachineUDPTxOpen(void)
 {
-
-    if ( (APPCTX.udpSock = UDPOpen(0, &APPCTX.remoteSide.remote, APPCTX.mServerPort)) == INVALID_UDP_SOCKET )
+    if ( (APPCTX.udpSock = UDPOpenEx((DWORD)APPCTX.remoteSide.remote.IPAddr.v,UDP_OPEN_NODE_INFO, 0, APPCTX.mServerPort)) == INVALID_UDP_SOCKET )
     {
         /* error case */
         WFConsolePrintRomStr("Create UDP socket failed", TRUE);

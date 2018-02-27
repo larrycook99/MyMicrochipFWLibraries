@@ -45,37 +45,12 @@
  * SIMILAR COSTS, WHETHER ASSERTED ON THE BASIS OF CONTRACT, TORT
  * (INCLUDING NEGLIGENCE), BREACH OF WARRANTY, OR OTHERWISE.
  *
- *
- * Author              Date         Comment
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * Nilesh Rajbharti		4/19/01		Original (Rev. 1.0)
- * Nilesh Rajbharti		2/09/02		Cleanup
- * Nilesh Rajbharti		5/22/02		Rev 2.0 (See version.log for detail)
- * Nilesh Rajbharti		7/9/02		Rev 2.1 (See version.log for detail)
- * Nilesh Rajbharti		4/7/03		Rev 2.11.01 (See version log for detail)
- * Howard Schlunder		10/1/04		Beta Rev 0.9 (See version log for detail)
- * Howard Schlunder		10/8/04		Beta Rev 0.9.1 Announce support added
- * Howard Schlunder		11/29/04	Beta Rev 0.9.2 (See version log for detail)
- * Howard Schlunder		2/10/05		Rev 2.5.0
- * Howard Schlunder		1/5/06		Rev 3.00
- * Howard Schlunder		1/18/06		Rev 3.01 ENC28J60 fixes to TCP, 
- *									UDP and ENC28J60 files
- * Howard Schlunder		3/01/06		Rev. 3.16 including 16-bit micro support
- * Howard Schlunder		4/12/06		Rev. 3.50 added LCD for Explorer 16
- * Howard Schlunder		6/19/06		Rev. 3.60 finished dsPIC30F support, added PICDEM.net 2 support
- * Howard Schlunder		8/02/06		Rev. 3.75 added beta DNS, NBNS, and HTTP client (GenericTCPClient.c) services
- * Howard Schlunder		12/28/06	Rev. 4.00RC added SMTP, Telnet, substantially modified TCP layer
- * Howard Schlunder		04/09/07	Rev. 4.02 added TCPPerformanceTest, UDPPerformanceTest, Reboot and fixed some bugs
- * Howard Schlunder		xx/xx/07	Rev. 4.03
- * HSchlunder & EWood	08/27/07	Rev. 4.11
- * HSchlunder & EWood	10/08/07	Rev. 4.13
- * HSchlunder & EWood	11/06/07	Rev. 4.16
- * HSchlunder & EWood	11/08/07	Rev. 4.17
- * HSchlunder & EWood	11/12/07	Rev. 4.18
- * HSchlunder & EWood	02/11/08	Rev. 4.19
- * HSchlunder & EWood   04/26/08    Rev. 4.50 Moved most code to other files for clarity
- * KHesky               07/07/08    Added MRF24W-specific support
- * SGustafson           01/30/09    Added LinkMgrII, LinkLib, Console, and iperf.
+ * File Description:
+ * Change History:
+ * Rev   Description
+ * ----  -----------------------------------------
+ * 1.0   Initial release
+ * V5.36 ---- STACK_USE_MPFS support has been removed 
  ********************************************************************/
 /*
  * This macro uniquely defines this file as the main entry point.
@@ -127,6 +102,10 @@ static void InitializeBoard(void);
     static void WF_Connect(void);
 #endif
 
+#if defined( WF_CONSOLE_IFCFGUTIL )
+extern UINT8 g_hibernate_state;
+extern UINT8 g_wakeup_notice;
+#endif
 //
 // PIC18 Interrupt Service Routines
 // 
@@ -251,6 +230,10 @@ int main(void)
 {
 	static DWORD t = 0;
 	static DWORD dwLastIP = 0;
+#if defined(WF_USE_POWER_SAVE_FUNCTIONS)
+    BOOL  PsPollEnabled;
+	BOOL  psConfDone = FALSE;
+#endif
 
 	// Initialize application specific hardware
 	InitializeBoard();
@@ -267,7 +250,7 @@ int main(void)
 	// Initialize stack-related hardware components that may be 
 	// required by the UART configuration routines
     TickInit();
-	#if defined(STACK_USE_MPFS) || defined(STACK_USE_MPFS2)
+	#if defined(STACK_USE_MPFS2)
 	MPFSInit();
 	#endif
 
@@ -369,6 +352,38 @@ int main(void)
     // down into smaller pieces so that other tasks can have CPU time.
     while(1)
     {
+		#if defined(WF_USE_POWER_SAVE_FUNCTIONS)
+    	if (!psConfDone && WFisConnected()) {	
+			PsPollEnabled = (MY_DEFAULT_PS_POLL == WF_ENABLED);
+			if (!PsPollEnabled) {	 
+					/* disable low power (PS-Poll) mode */
+			#if defined(STACK_USE_UART)
+				putrsUART("Disable PS-Poll\r\n");		 
+			#endif
+				WF_PsPollDisable();
+			} else {
+					/* Enable low power (PS-Poll) mode */
+			#if defined(STACK_USE_UART)
+				putrsUART("Enable PS-Poll\r\n");		
+			#endif
+				WF_PsPollEnable(TRUE);
+			}	
+			psConfDone = TRUE;
+    	}
+		#endif
+		#if defined( WF_CONSOLE_IFCFGUTIL )
+  	  	if (g_wakeup_notice && g_hibernate_state == WF_HB_WAIT_WAKEUP) {
+			DelayMs(200);
+			g_hibernate_state = WF_HB_NO_SLEEP;
+			StackInit();
+        		#if defined(WF_CONSOLE)
+			IperfAppInit();
+			#endif
+    		#if defined(WF_CS_TRIS)
+    		WF_Connect();
+    		#endif
+		}
+		#endif
         // Blink LED0 (right most one) every second.
         if(TickGet() - t >= TICK_SECOND/2ul)
         {
@@ -401,13 +416,32 @@ int main(void)
 		// the inputs on the board itself.
 		// Any custom modules or processing you need to do should
 		// go here.
-
+		#if defined( WF_CONSOLE_IFCFGUTIL )
+		wait_console_input:
+		#endif
         #if defined(WF_CONSOLE)
 		WFConsoleProcess();
-		IperfAppCall();
+		#if defined( WF_CONSOLE_IFCFGUTIL )
+		if (g_hibernate_state == WF_HB_NO_SLEEP)
+			IperfAppCall();
+		#else
+			IperfAppCall();
+		#endif
 		WFConsoleProcessEpilogue();
 		#endif
-
+		#if defined( WF_CONSOLE_IFCFGUTIL )
+		if (g_hibernate_state != WF_HB_NO_SLEEP) {
+			if (g_hibernate_state == WF_HB_ENTER_SLEEP) {
+				SetLogicalConnectionState(FALSE);
+				WF_HibernateEnable();
+				g_hibernate_state = WF_HB_WAIT_WAKEUP;
+			}
+			if (g_wakeup_notice) 
+				continue;
+			else
+				goto wait_console_input;
+		}
+		#endif
 		#if defined(STACK_USE_GENERIC_TCP_CLIENT_EXAMPLE)
 		GenericTCPClient();
 		#endif
@@ -489,9 +523,6 @@ static void WF_Connect(void)
 {
     UINT8 ConnectionProfileID;
     UINT8 channelList[] = MY_DEFAULT_CHANNEL_LIST;
-    #if defined(WF_USE_POWER_SAVE_FUNCTIONS)
-    BOOL  PsPollEnabled;
-    #endif
     
     /* create a Connection Profile */
     WF_CPCreate(&ConnectionProfileID);
@@ -523,33 +554,32 @@ static void WF_Connect(void)
     #if defined(STACK_USE_UART)
     putrsUART("Set list retry count\r\n");
     #endif
-    WF_CASetListRetryCount(MY_DEFAULT_LIST_RETRY_COUNT);
+    // The Retry Count parameter tells the WiFi Connection manager how many attempts to make when trying
+    // to connect to an existing network.  In the Infrastructure case, the default is to retry forever so that
+    // if the AP is turned off or out of range, the radio will continue to attempt a connection until the
+    // AP is eventually back on or in range.  In the Adhoc case, the default is to retry 3 times since the 
+    // purpose of attempting to establish a network in the Adhoc case is only to verify that one does not
+    // initially exist.  If the retry count was set to WF_RETRY_FOREVER in the AdHoc mode, an AdHoc network
+    // would never be established.  The constants MY_DEFAULT_LIST_RETRY_COUNT_ADHOC and 
+    // MY_DEFAULT_LIST_RETRY_COUNT_INFRASTRUCTURE have been created specifically for the June 2011 MAL release.
+    #if defined(EZ_CONFIG_STORE)
+        if (AppConfig.networkType == WF_ADHOC)
+            WF_CASetListRetryCount(MY_DEFAULT_LIST_RETRY_COUNT_ADHOC);
+        else
+            WF_CASetListRetryCount(MY_DEFAULT_LIST_RETRY_COUNT_INFRASTRUCTURE);
+    #else
+        #if (MY_DEFAULT_NETWORK_TYPE == WF_ADHOC)
+            WF_CASetListRetryCount(MY_DEFAULT_LIST_RETRY_COUNT_ADHOC);
+        #else
+            WF_CASetListRetryCount(MY_DEFAULT_LIST_RETRY_COUNT_INFRASTRUCTURE);
+        #endif
+    #endif
 
     #if defined(STACK_USE_UART)        
     putrsUART("Set Event Notify\r\n");    
     #endif
     WF_CASetEventNotificationAction(MY_DEFAULT_EVENT_NOTIFICATION_LIST);
     
-#if defined(WF_USE_POWER_SAVE_FUNCTIONS)
-    PsPollEnabled = (MY_DEFAULT_PS_POLL == WF_ENABLED);
-    if (!PsPollEnabled)
-    {    
-        /* disable low power (PS-Poll) mode */
-        #if defined(STACK_USE_UART)
-        putrsUART("Disable PS-Poll\r\n");        
-        #endif
-        WF_PsPollDisable();
-    }    
-    else
-    {
-        /* Enable low power (PS-Poll) mode */
-        #if defined(STACK_USE_UART)
-        putrsUART("Enable PS-Poll\r\n");        
-        #endif
-        WF_PsPollEnable(TRUE);
-    }    
-#endif
-
     #if defined(STACK_USE_UART)
     putrsUART("Set Beacon Timeout\r\n");
     #endif
@@ -1202,7 +1232,7 @@ void SaveAppConfig(const APP_CONFIG *ptrAppConfig)
 	// store the entire AppConfig structure.  If you get stuck in this while(1) 
 	// trap, it means you have a design time misconfiguration in TCPIPConfig.h.
 	// You must increase MPFS_RESERVE_BLOCK to allocate more space.
-	#if defined(STACK_USE_MPFS) || defined(STACK_USE_MPFS2)
+	#if defined(STACK_USE_MPFS2)
 		if(sizeof(NVMValidationStruct) + sizeof(AppConfig) > MPFS_RESERVE_BLOCK)
 			while(1);
 	#endif

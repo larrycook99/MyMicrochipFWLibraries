@@ -1,35 +1,56 @@
--- PICDEM.net control MIB.
---
--- Author                   Date        Comment
--- ==================================================================
--- Nilesh Rajbharti         5/21/03     Initial
+-- MICROCHIP TECHNOLOGIES SNMP STACK SMIV2 SPECIFICATION DEMO CONTROL MIB
 --
 
-Microchip DEFINITIONS ::= BEGIN
+MICROCHIP-MIB DEFINITIONS ::= BEGIN
 
 IMPORTS
-   enterprises, IpAddress, Gauge, TimeTicks     FROM RFC1155-SMI
-   DisplayString                                FROM RFC1213-MIB
+   MODULE-IDENTITY,enterprises, 
+   IpAddress ,Integer32		   				FROM SNMPv2-SMI
+   -- Gauge, TimeTicks     						FROM RFC1155-SMI
+   DisplayString                                FROM SNMPv2-TC
    OBJECT-TYPE                                  FROM RFC-1212
-   TRAP-TYPE                                    FROM RFC-1215
+   NOTIFICATION-TYPE                        	FROM SNMPv2-SMI
+   -- TRAP-TYPE                                 FROM RFC-1215
    SnmpSecurityModel,
    SnmpMessageProcessingModel,
    SnmpSecurityLevel,
-   SnmpAdminString				      FROM SNMP-FRAMEWORK-MIB
-   KeyChange						FROM SNMP-USER-BASED-SM-MIB
-   TEXTUAL-CONVENTION			FROM SNMPv2-TC;
+   SnmpAdminString				      			FROM SNMP-FRAMEWORK-MIB
+   KeyChange									FROM SNMP-USER-BASED-SM-MIB
+   TEXTUAL-CONVENTION							FROM SNMPv2-TC
+   MODULE-COMPLIANCE, OBJECT-GROUP , 
+   NOTIFICATION-GROUP      						FROM SNMPv2-CONF;
 
-microchip                           OBJECT IDENTIFIER ::=  { enterprises 17095 }
+microchipInfo MODULE-IDENTITY
+    LAST-UPDATED "201106080000Z"
+    ORGANIZATION "Microchip"
+    CONTACT-INFO
+                  "WWW.microchip.com"
+    DESCRIPTION
+        "The MIB for SNMP stack demo application."
 
-product                            	OBJECT IDENTIFIER ::=  { microchip 1 }
-setup                               OBJECT IDENTIFIER ::=  { microchip 2 }
-control                             OBJECT IDENTIFIER ::=  { microchip 3 }
-snmpUsm			    		OBJECT IDENTIFIER ::=  { microchip 4 }
-snmpTrap					OBJECT IDENTIFIER ::=  { microchip 5 }
-snmpv3PvtObject				OBJECT IDENTIFIER ::=  { microchip 6 }
+	REVISION 	"201106080000Z"
+	DESCRIPTION
+        "The MIB module for SMIv2."
+    ::= { microchip 1 }   
+   
+microchip                   OBJECT IDENTIFIER ::=  { enterprises 17095 }
+
+product                     OBJECT IDENTIFIER ::=  { microchipInfo 1 }
+setup                       OBJECT IDENTIFIER ::=  { microchipInfo 2 }
+control                     OBJECT IDENTIFIER ::=  { microchipInfo 3 }
+snmpUsm			    		OBJECT IDENTIFIER ::=  { microchipInfo 4 }
+snmpTrap					OBJECT IDENTIFIER ::=  { microchipInfo 5 }
+snmpv3PvtObject				OBJECT IDENTIFIER ::=  { microchipInfo 6 }
+trapNotifications 			OBJECT IDENTIFIER ::=  { microchipInfo 7 }
+
+mchipMIBConformance         OBJECT IDENTIFIER ::=  { microchipInfo 8 }
+
+mchipMIBCompliances         OBJECT IDENTIFIER ::= { mchipMIBConformance 1 }
+mchipMIBGroups  			OBJECT IDENTIFIER ::= { mchipMIBConformance 2 }
 
 
-   ON-OFF          ::=   INTEGER { ON(1), OFF(0) }
+
+  -- ON-OFF          ::=   INTEGER { ON(1), OFF(0) }
 
 MCHPUsmAuthPrivProtocol ::=  TEXTUAL-CONVENTION
        STATUS  current
@@ -50,8 +71,8 @@ MCHPUsmAuthPrivProtocol ::=  TEXTUAL-CONVENTION
 
 name    OBJECT-TYPE
    SYNTAX DisplayString
-   ACCESS read-only
-   STATUS mandatory
+   MAX-ACCESS read-only
+   STATUS current
    DESCRIPTION
       "Name of product. e.g. PICDEM.net etc."
    ::= { product 1 }
@@ -59,57 +80,57 @@ name    OBJECT-TYPE
 
 version    OBJECT-TYPE
    SYNTAX DisplayString
-   ACCESS read-only
-   STATUS mandatory
+   MAX-ACCESS read-only
+   STATUS current
    DESCRIPTION
       "Version string. e.g. 1.0"
    ::= { product 2 }
    
 date    OBJECT-TYPE
    SYNTAX DisplayString
-   ACCESS read-only
-   STATUS mandatory
+   MAX-ACCESS read-only
+   STATUS current
    DESCRIPTION
       "Date of version"
    ::= { product 3 }
    
 ledD5 OBJECT-TYPE
-    SYNTAX INTEGER { OFF(0), ON(1) }
-    ACCESS read-write
-    STATUS mandatory
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-write
+    STATUS current
     DESCRIPTION 
         "D5 LED connected LATA2"
     ::= { control 1 }
     
 ledD6 OBJECT-TYPE
-    SYNTAX INTEGER { OFF(0), ON(1) }
-    ACCESS read-write
-    STATUS mandatory
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-write
+    STATUS current
     DESCRIPTION
         "D6 LED connected to LATA3"
     ::= { control 2 }
 
 pushButton    OBJECT-TYPE
-   SYNTAX INTEGER { OPEN(1), CLOSED(0) }
-   ACCESS read-only
-   STATUS mandatory
+   SYNTAX INTEGER { closed(0),open(1) }
+   MAX-ACCESS read-only
+   STATUS current
    DESCRIPTION
       "8-bit A/D value"
    ::= { control 3 }
 
 
 analogPot0    OBJECT-TYPE
-   SYNTAX INTEGER
-   ACCESS read-only
-   STATUS mandatory
+   SYNTAX Integer32
+   MAX-ACCESS read-only
+   STATUS current
    DESCRIPTION
       "10-bit A/D value"
    ::= { control 4 }
    
 analogPot1    OBJECT-TYPE
-   SYNTAX INTEGER
-   ACCESS read-only
-   STATUS mandatory
+   SYNTAX Integer32
+   MAX-ACCESS read-only
+   STATUS current
    DESCRIPTION
       "10-bit A/D value"
    ::= { control 5 }
@@ -117,36 +138,36 @@ analogPot1    OBJECT-TYPE
    
 lcdDisplay  OBJECT-TYPE
     SYNTAX  DisplayString (SIZE (0..15))
-    ACCESS read-write
-    STATUS mandatory
+    MAX-ACCESS read-write
+    STATUS current
     DESCRIPTION
         "Second line of LCD on PICDEM.net board"
     ::= { control 6 }        
 
 
-traps OBJECT-TYPE
+trapTable OBJECT-TYPE
     SYNTAX SEQUENCE OF TrapEntry
-    ACCESS not-accessible
-    STATUS mandatory
+    MAX-ACCESS not-accessible
+    STATUS current
     DESCRIPTION
         "Trap table"
     ::= { setup 1 }        
     
 trapEntry OBJECT-TYPE
     SYNTAX TrapEntry
-    ACCESS not-accessible
-    STATUS mandatory
+    MAX-ACCESS not-accessible
+    STATUS current
     DESCRIPTION
         "Single trap entry containing trap receiver info."
     INDEX { trapReceiverNumber }
-     ::= { traps 1 }
+     ::= { trapTable 1 }
      
-trapEntry ::=
+TrapEntry ::=
     SEQUENCE {
         trapReceiverNumber
-            INTEGER,
+            Integer32,
         trapEnabled
-            INTEGER,
+            Integer32,
         trapReceiverIPAddress
             IpAddress,
         trapCommunity
@@ -154,17 +175,18 @@ trapEntry ::=
     }            
     
 trapReceiverNumber  OBJECT-TYPE
-    SYNTAX INTEGER (0.. 4)
-    ACCESS not-accessible
-    STATUS mandatory
+
+    SYNTAX Integer32(0.. 4)
+    MAX-ACCESS not-accessible
+    STATUS current
     DESCRIPTION
         "Index of trap receiver"
     ::= { trapEntry 1 }
     
 trapEnabled OBJECT-TYPE
-    SYNTAX INTEGER { Yes(1), No(0) }
-    ACCESS read-write
-    STATUS mandatory
+    SYNTAX INTEGER { no(0),yes(1) }
+    MAX-ACCESS read-write
+    STATUS current
     DESCRIPTION
         "Indicates if this trap entry is enabled or not."
     ::= { trapEntry 2 }
@@ -172,16 +194,16 @@ trapEnabled OBJECT-TYPE
 
 trapReceiverIPAddress OBJECT-TYPE
     SYNTAX  IpAddress
-    ACCESS  read-write
-    STATUS mandatory
+    MAX-ACCESS  read-write
+    STATUS current
     DESCRIPTION
         "Trap receiver IP address"
     ::= { trapEntry 3 }
 
 trapCommunity OBJECT-TYPE
     SYNTAX  DisplayString (SIZE (0..7))
-    ACCESS  read-write
-    STATUS mandatory
+    MAX-ACCESS  read-write
+    STATUS current
     DESCRIPTION
         "Trap community to be used by agent to send trap"
     ::= { trapEntry 4 }
@@ -189,10 +211,10 @@ trapCommunity OBJECT-TYPE
 
 mchpUsmUserTable     OBJECT-TYPE
     SYNTAX       SEQUENCE OF MchpUsmUserEntry
-    ACCESS   not-accessible
-    STATUS       mandatory
+    MAX-ACCESS   not-accessible
+    STATUS       current
     DESCRIPTION "This table is used to configure microchip USM.
-			To get the SNMPv3 access, One need to configure security 
+		     To get the SNMPv3 access, user need to configure security 
 		     name,authentication,auth password,priv protocol and priv 
                  password.
 		     
@@ -201,16 +223,15 @@ mchpUsmUserTable     OBJECT-TYPE
 
 mchpUsmUserEntry     OBJECT-TYPE
     SYNTAX       	MchpUsmUserEntry
-    ACCESS      	not-accessible
-    STATUS       	mandatory
-    DESCRIPTION 	"A user configured for the User-based
-                 		Security Model.
-                		"
+    MAX-ACCESS    not-accessible
+    STATUS       	current
+    DESCRIPTION 	"User security configurations for USM.
+                	"
     INDEX       { usmIndex }
     ::= { mchpUsmUserTable 1 }
 
 MchpUsmUserEntry   ::= SEQUENCE {
-	    usmIndex		INTEGER,
+	    usmIndex		Integer32,
 	    usmSecurityName	SnmpAdminString,
           usmAuthProtocol     MCHPUsmAuthPrivProtocol,
           usmAuthKey		KeyChange,
@@ -219,17 +240,17 @@ MchpUsmUserEntry   ::= SEQUENCE {
     }
 
 usmIndex	  	OBJECT-TYPE
-    SYNTAX 		INTEGER (1..3)     
-    ACCESS   not-accessible
-    STATUS       mandatory
+    SYNTAX 		Integer32 (1..3)     
+    MAX-ACCESS   not-accessible
+    STATUS       current
     DESCRIPTION  "Usm configuration index. "
     ::= { mchpUsmUserEntry 1 }
 
 
 usmSecurityName  OBJECT-TYPE
     SYNTAX       SnmpAdminString
-    ACCESS   read-write
-    STATUS       mandatory
+    MAX-ACCESS   read-write
+    STATUS       current
     DESCRIPTION "A human readable string representing the user in
                  Security Model independent format.
 
@@ -243,20 +264,20 @@ usmSecurityName  OBJECT-TYPE
 
 usmAuthProtocol OBJECT-TYPE
     SYNTAX       MCHPUsmAuthPrivProtocol
-    ACCESS   read-write
-    STATUS       mandatory
+    MAX-ACCESS   read-write
+    STATUS       current
     DESCRIPTION  "Authentication support to the SNMPv3.
-		     If usmAuthProtocol == NoAuthProtocol, then SNMPv3 supports 
-		     with no authentication.
+		     If usmAuthProtocol == NoAuthProtocol, then SNMPv3 Stack does 
+		     not support/requires authentication.
 		     If usmAuthProtocol == HMACMD5Auth , supports MD5 auth
 		     If usmAuthProtocol == HMACSHAAuth, supports SHA Auth 	
-                 If a set operation tries to set the value to the
+                 If a set operation tries to set value as
                  NoAuthProtocol while the usmPrivProtocol value
-                 in the same row is not equal to NoPrivProtocol,
+                 for the same userName is not equal to NoPrivProtocol,
                  then an 'inconsistentValue' error must be returned.
-                 That means that an SNMP command generator application
-                 must first ensure that the usmPrivProtocol is set
-                 to the NoPrivProtocol value before it can set
+                 This implies that SNMP command generator (SNMP Manager)
+		     application must first ensure that the usmPrivProtocol is set
+                 to NoPrivProtocol value before it can set
                  the usmAuthProtocol value to NoAuthProtocol.
                 "
     ::= { mchpUsmUserEntry 3 }
@@ -264,31 +285,32 @@ usmAuthProtocol OBJECT-TYPE
 usmAuthKey OBJECT-TYPE
     SYNTAX       KeyChange   -- typically (SIZE (0 | 32)) for HMACMD5
                              -- typically (SIZE (0 | 40)) for HMACSHA
-    ACCESS   read-write
-    STATUS       mandatory
-    DESCRIPTION  "An object, Associated protocol is usmAuthProtocol
-			and a secret key is used to establish a connection 
-			for the  snmp agent and manager commnucation.
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION  "This object in the MIB is associated to usmAuthProtocol.
+			A secret authentication key is required to establish a secure connection 
+			between snmp agent and manager.
 		    "			
     ::= { mchpUsmUserEntry 4 }
 
 
 usmPrivProtocol OBJECT-TYPE
     SYNTAX       MCHPUsmAuthPrivProtocol
-    ACCESS   read-write
-    STATUS       mandatory
+    MAX-ACCESS   read-write
+    STATUS       current
     DESCRIPTION " A privacy protocol to provide encryption and decryption
-			SNMPv3 pdu. 
+			of SNMPv3 pdu. 
                 "
     ::= { mchpUsmUserEntry 5 }
 
 usmPrivKey OBJECT-TYPE
     SYNTAX       KeyChange  -- typically (SIZE (0 | 32)) for DES
-    ACCESS   read-write
-    STATUS       mandatory
-    DESCRIPTION "An object, Associated protocol is usmPrivProtocol
-			and a secret key is used to establish a connection 
-			for the  snmp agent and manager commnucation.
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION "This object in the MIB is associated to usmPrivProtocol.
+			A secret privacy key is required to establish a secure connection 
+			between snmp agent and manager.
+
                 "
     ::= { mchpUsmUserEntry 6 }
 
@@ -297,17 +319,17 @@ usmPrivKey OBJECT-TYPE
 
 mchpTargetTable OBJECT-TYPE
        SYNTAX      SEQUENCE OF MchpTargetEntry
-       ACCESS      not-accessible
-       STATUS      mandatory
+       MAX-ACCESS      not-accessible
+       STATUS      current
        DESCRIPTION
-           "A table of SNMP target information to be used
-            in the generation of SNMP trap messages."
+           "A table for SNMP target information. This information is required for
+           generation of SNMP trap notifications."
        ::= { snmpTrap 1 }
 
 mchpTargetEntry OBJECT-TYPE
        SYNTAX      MchpTargetEntry
-       ACCESS      not-accessible
-       STATUS      mandatory
+       MAX-ACCESS      not-accessible
+       STATUS      current
        DESCRIPTION
            "A set of SNMP target information.
            "
@@ -315,7 +337,7 @@ mchpTargetEntry OBJECT-TYPE
        ::= { mchpTargetTable 1 }
 
 MchpTargetEntry ::= SEQUENCE {
-       snmpTargetIndex          INTEGER,
+       snmpTargetIndex          Integer32,
        snmpTargetMPModel        SnmpMessageProcessingModel,
        snmpTargetSecurityModel  SnmpSecurityModel,
        snmpTargetSecurityName   SnmpAdminString,
@@ -323,29 +345,29 @@ MchpTargetEntry ::= SEQUENCE {
    }
 
 snmpTargetIndex OBJECT-TYPE
-       SYNTAX      INTEGER(1..8)
-       ACCESS  	 not-accessible
-       STATUS      mandatory
+       SYNTAX      Integer32(1..8)
+       MAX-ACCESS  	 not-accessible
+       STATUS      current
        DESCRIPTION
            "The locally arbitrary, but unique identifier associated
-            with this mchpTargetEntry."
+            with mchpTargetEntry."
        ::= { mchpTargetEntry 1 }
 
 snmpTargetMPModel OBJECT-TYPE
        SYNTAX      SnmpMessageProcessingModel
-       ACCESS      read-write
-       STATUS      mandatory
+       MAX-ACCESS      read-write
+       STATUS      current
        DESCRIPTION
-           "The Message Processing Model to be used when generating
+           "The Message Processing Model to be used when generating/processing
             SNMP messages using this entry."
        ::= { mchpTargetEntry 2 }
 
 snmpTargetSecurityModel OBJECT-TYPE
        SYNTAX      SnmpSecurityModel (1..2147483647)
-       ACCESS      read-write
-       STATUS      mandatory
+       MAX-ACCESS      read-write
+       STATUS      current
        DESCRIPTION
-           "The Security Model to be used when generating SNMP
+           "The Security Model to be used while generating SNMP
              messages using this entry.  An implementation may
              choose to return an inconsistentValue error if an
              attempt is made to set this variable to a value
@@ -355,31 +377,80 @@ snmpTargetSecurityModel OBJECT-TYPE
 
 snmpTargetSecurityName OBJECT-TYPE
        SYNTAX      SnmpAdminString
-       ACCESS      read-write
-       STATUS      mandatory
+       MAX-ACCESS      read-write
+       STATUS      current
        DESCRIPTION
            "The securityName which identifies the Principal on
-            whose behalf SNMP messages will be generated using
-            this entry."
+            whose behalf SNMP messages will be generated.
+		"
        ::= { mchpTargetEntry 4 }
 
 snmpTargetSecurityLevel OBJECT-TYPE
        SYNTAX      SnmpSecurityLevel
-       ACCESS      read-write
-       STATUS      mandatory
+       MAX-ACCESS      read-write
+       STATUS      current
        DESCRIPTION
            "The Level of Security to be used when generating
             SNMP messages using this entry."
        ::= { mchpTargetEntry 5 }
 
-snmpv3PvtDemoObject    OBJECT-TYPE
-   SYNTAX INTEGER
-   ACCESS read-only
-   STATUS mandatory
-   DESCRIPTION
-      "This object is used to give support of a SNMPV3 variable 
-	with readonly value."
-   ::= { snmpv3PvtObject 1 }
+   
+snmp-demo-trap NOTIFICATION-TYPE
+	OBJECTS { analogPot0,pushButton,ledD5}
+	STATUS current
+	DESCRIPTION 
+		"SMIV2 Trap notification information for the SNMP Manager. 
+		The objects used in the demo trap notification are 
+		analogPot0,pushButton and ledD5. User should modify this object 
+		infomration as per requirements. These object should 
+		have been defined as part of the MIB.
+		"
+	::= {trapNotifications 1}
+	
+	
+mchipDemoCompliance1 MODULE-COMPLIANCE
+    STATUS  current
+	DESCRIPTION
+            "This group is for SNMP demo applications."
+    MODULE  -- this module
+        MANDATORY-GROUPS { mchipDemoGroup1, mchipDemoGroup2}
 
+    ::= { mchipMIBCompliances 1 }
+	
+mchipDemoCompliance2 MODULE-COMPLIANCE
+    STATUS  current
+	DESCRIPTION
+            "This group is for trap demo applications."
+    MODULE  -- this module
+        MANDATORY-GROUPS {mchipDemoGroup3}
+
+    ::= { mchipMIBCompliances 2 }	
+			
+mchipDemoGroup1 OBJECT-GROUP
+    OBJECTS { name, version,date,ledD5,ledD6,pushButton,
+			  analogPot0,analogPot1,lcdDisplay,
+              trapEnabled,trapReceiverIPAddress,trapCommunity}
+    STATUS  current
+    DESCRIPTION
+            "A collection of objects providing basic product
+            and control of a product."
+    ::= { mchipMIBGroups 1 }	
+
+mchipDemoGroup2 OBJECT-GROUP
+    OBJECTS { usmSecurityName,usmAuthProtocol,usmAuthKey,
+			 usmPrivProtocol,usmPrivKey,snmpTargetMPModel,
+			 snmpTargetSecurityModel,snmpTargetSecurityName,
+			 snmpTargetSecurityLevel}
+    STATUS  current
+    DESCRIPTION
+            "A collection of objects are used for SNMPV3 Configuration."
+    ::= { mchipMIBGroups 2 }	
+
+mchipDemoGroup3 NOTIFICATION-GROUP
+    NOTIFICATIONS  {snmp-demo-trap}
+    STATUS  current
+    DESCRIPTION
+            "SNMP Trap Notification object."
+    ::= { mchipMIBGroups 3 }		
 
 END   
