@@ -63,6 +63,20 @@
 */
 #include "mTouch.h"
 
+#asm
+    #ifndef MTOUCH_ACQ_CAS_INCLUDE
+    #define MTOUCH_ACQ_CAS_INCLUDE
+        #if defined(_12F617) && (_HTC_VER_MAJOR_ == 9 && _HTC_VER_MINOR_ == 80)
+            #include <cas12F617.h>      // HiTech's 9.80 compiler's caspic.h includes the 617 header file twice, causing compiling 
+                                        // errors. This will by-pass the mistake by directly including the correct file only once.
+                                        // This issue has been fixed as of the 9.81 release.
+        #elif (_HTC_VER_MAJOR_ == 9 && _HTC_VER_MINOR_ >= 83)
+            #if defined(_PIC14) || defined(_PIC14E)
+            #include <caspic.h>
+            #endif
+        #endif
+    #endif
+#endasm
 
 /** @name mTouch Acquisition ISR Variables
 * These variables are used by the ISR of the mTouch Framework and should not be directly
@@ -189,41 +203,24 @@ uint8_t         mTouch_Scan(void)
 #endif
 {
 #asm
-    #ifndef MTOUCH_ACQ_CAS_INCLUDE
-    #define MTOUCH_ACQ_CAS_INCLUDE
-        #if defined(_12F617) && (_HTC_VER_MAJOR_ == 9 && _HTC_VER_MINOR_ == 80)
-            #include <cas12F617.h>      // HiTech's 9.80 compiler's caspic.h includes the 617 header file twice, causing compiling 
-                                        // errors. This will by-pass the mistake by directly including the correct file only once.
-                                        // This issue has been fixed as of the 9.81 release.
-        #else
-            #if defined(_PIC14) || defined(_PIC14E)
-            #include <caspic.h>
-            #endif
-        #endif
-    #endif
 mTouch_Scan:
 #endasm 
-    
-    NOP();
-    NOP();
-    NOP();
-    
+        
     //
     // Intro Logic :: Check to see if we should scan.
     //
     #if     (MTOUCH_INTEGRATION_TYPE == MTOUCH_CONTROLS_ISR)
-        SAVE_STATE();
         if (MTOUCH_ISR_TMRxIF == 0) 
         {
             return;
-        } else {                            
-            MTOUCH_ISR_TMRxIF = 0;          
-        }
+        }  
+        
+        MTOUCH_ISR_TMRxIF = 0; 
     #elif   (MTOUCH_INTEGRATION_TYPE == MTOUCH_CALLED_FROM_MAINLOOP)
-    if (mTouch_state.scanningEnabled == 0)
-    {
-        return 0;
-    }    
+        if (mTouch_state.scanningEnabled == 0)
+        {
+            return 0;
+        }    
     #endif
     
     #if (MTOUCH_SCAN_FUNCTIONALITY == MTOUCH_SCANS_ALL_SENSORS)
@@ -288,7 +285,7 @@ mTouch_Scan:
                     if (mTouch_previousSensor != 0)
                     {
                         mTouch_UpdateAccumulator2();    // Take the result from the decimation filter and update the
-                                                                            // accumulator value for the previous sensor.
+                                                        // accumulator value for the previous sensor.
                     }
                 #if (MTOUCH_INTEGRATION_TYPE == MTOUCH_CALLED_FROM_MAINLOOP)
                 }
@@ -302,15 +299,16 @@ mTouch_Scan:
             } while (mTouch_state.isRepeatScan);
             #endif
         
+            //
+            //  Increment sensor index and sample counter
+            //
+            mTouch_previousSensor   = &mTouch_acqData[MTOUCH_CURRENTSCAN_VALUE];
+        
         #if defined(MTOUCH_UNIQUE_OVERSAMPLE_ENABLE)
             mTouch_oversample[MTOUCH_CURRENTSCAN_VALUE]--;
         }
         #endif
         
-    //
-    //  Increment sensor index and sample counter
-    //
-        mTouch_previousSensor   = &mTouch_acqData[MTOUCH_CURRENTSCAN_VALUE];  
     
     #if MTOUCH_NUMBER_SENSORS > 1
         mTouch_currentScan++;
@@ -403,15 +401,11 @@ mTouch_Scan:
     MTOUCH_ISR_TMRxIF = 0;          // Clear TMRxIF to avoid immediate ISR re-entry upon leaving.        
     #endif        
     
-    #if (MTOUCH_INTEGRATION_TYPE == MTOUCH_CONTROLS_ISR)
-        RESTORE_STATE();
-        asm("retfie");
-    #elif (MTOUCH_INTEGRATION_TYPE == MTOUCH_CALLED_FROM_ISR)
-        asm("return");
+    #if (MTOUCH_INTEGRATION_TYPE == MTOUCH_CONTROLS_ISR) || (MTOUCH_INTEGRATION_TYPE == MTOUCH_CALLED_FROM_ISR)
+        return;
     #elif (MTOUCH_INTEGRATION_TYPE == MTOUCH_CALLED_FROM_MAINLOOP)
         return mTouch_state.dataReady;
     #endif
-
 }
 
 void mTouch_DecimationFilter(void)
