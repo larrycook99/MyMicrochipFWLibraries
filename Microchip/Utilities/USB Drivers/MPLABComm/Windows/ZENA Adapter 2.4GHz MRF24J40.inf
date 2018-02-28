@@ -8,9 +8,9 @@ Class = CustomUSBDevices
 ClassGuid= {a503e2d3-a031-49dc-b684-c99085dbfe92}
 
 Provider = %MFGNAME%
-DriverVer=08/24/2009,1.0.0.2
-;CatalogFile=MCHPWinUSBDevice_v2.cat	;CAT file used when obtaining a WHQL signature on the driver package
-					;Otherwise isn't needed.
+DriverVer=01/11/2013,1.0.0.3
+CatalogFile="zena adapter 2.4ghz mrf24j40.cat"		;CAT file needs to be present, valid, and contain 
+							;correct signature for installation on some OSes
 ;------------------------------------------------------------------------------
 ; ========== Manufacturer/Models sections ===========
 ;------------------------------------------------------------------------------
