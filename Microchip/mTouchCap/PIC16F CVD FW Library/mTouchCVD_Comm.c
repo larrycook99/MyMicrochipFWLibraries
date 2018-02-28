@@ -58,7 +58,7 @@
 // Include and Header files
 //*****************************************************************************
 #include <stdlib.h>
-#include <includes/mTouchCVD.h>
+#include "mTouchCVD.h"
 
 #if defined(CVD_DEBUG) && (CVD_DEBUG == 1)
 //*****************************************************************************

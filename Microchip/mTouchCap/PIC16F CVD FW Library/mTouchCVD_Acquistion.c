@@ -65,7 +65,7 @@
 * @file mTouchCVD_Acquistion.c
 * @brief Implements the ISR for the framework which performs the sensor scanning
 */
-#include <includes/mTouchCVD.h>
+#include "mTouchCVD.h"
 
 /** @name mTouch Acquisition ISR Variables
 * These variables are used by the ISR of the mTouch Framework and should not be directly

@@ -161,8 +161,8 @@
 * ERROR CHECKING
 *********************************************************************/
 /*
-   This error check are intended for supported development
-   boards and modules. When using custom hardware, remove this part
+   This error check are intended for Microchip Development
+   Boards and Modules. When using custom hardware, remove this part
    of the hardware profile.
 */
 #if !defined (GFX_PICTAIL_V3) &&            \
@@ -172,7 +172,7 @@
     !defined (MEB_BOARD) &&                 \
     !defined (GFX_PICTAIL_LCC) &&           \
 	!defined (MIKRO_BOARD)
-	#error "Error: Graphics Hardware Platform is not defined! One of the following boards (GFX_PICTAIL_V3, GFX_PICTAIL_V3E, GFX_PICTAIL_V2, PIC24FJ256DA210_DEV_BOARD, MEB_BOARD, GFX_PICTAIL_LCC, MIKRO_BOARD) must be defined.
+	#error "Error: Graphics Hardware Platform is not defined! One of the following boards (GFX_PICTAIL_V3, GFX_PICTAIL_V3E, GFX_PICTAIL_V2, PIC24FJ256DA210_DEV_BOARD, MEB_BOARD, GFX_PICTAIL_LCC, MIKRO_BOARD) must be defined."
 #endif
 
 /*
@@ -557,7 +557,7 @@
 	#endif // #if defined (GFX_USE_DISPLAY_PANEL_TFT_G240320LTSW_118W_E) || defined (GFX_USE_DISPLAY_PANEL_TFT2N0369_E) ||....
 	
 // Using TFT_G320240DTSW_69W_TP_E Display Panel
-	#if defined (GFX_USE_DISPLAY_PANEL_TFT_G320240DTSW_69W_TP_E) || defined (GFX_USE_DISPLAY_PANEL_35QVW0T)  
+	#if defined (GFX_USE_DISPLAY_PANEL_TFT_G320240DTSW_69W_TP_E) 
 		#define DISP_ORIENTATION		0
         #define DISP_HOR_RESOLUTION		320
         #define DISP_VER_RESOLUTION		240
@@ -569,7 +569,36 @@
         #define DISP_VER_BACK_PORCH     7
         #define DISP_VER_FRONT_PORCH    5
     	#define GFX_LCD_TYPE            GFX_LCD_TFT
-	#endif // #if defined (GFX_USE_DISPLAY_PANEL_TFT_G320240DTSW_69W_TP_E) || defined (GFX_USE_DISPLAY_PANEL_35QVW0T) 
+
+	#endif // #if defined (GFX_USE_DISPLAY_PANEL_TFT_G320240DTSW_69W_TP_E) 
+
+// Using TFT_35QVW0T Display Panel
+	#if defined (GFX_USE_DISPLAY_PANEL_35QVW0T)  
+		#define DISP_ORIENTATION		0
+        #define DISP_HOR_RESOLUTION		320
+        #define DISP_VER_RESOLUTION		240
+        #define DISP_DATA_WIDTH			18
+        #define DISP_HOR_PULSE_WIDTH    18 
+        #define DISP_HOR_BACK_PORCH     50 
+        #define DISP_HOR_FRONT_PORCH    20 
+        #define DISP_VER_PULSE_WIDTH    8
+        #define DISP_VER_BACK_PORCH     10 
+        #define DISP_VER_FRONT_PORCH    4 
+    	#define GFX_LCD_TYPE            GFX_LCD_TFT
+
+        #if defined (GFX_USE_DISPLAY_CONTROLLER_MCHP_DA210)
+            #define GFX_DISPLAYENABLE_ENABLE
+            #define GFX_HSYNC_ENABLE
+            #define GFX_VSYNC_ENABLE
+            #define GFX_DISPLAYPOWER_ENABLE
+            #define GFX_CLOCK_POLARITY                  GFX_ACTIVE_LOW
+            #define GFX_DISPLAYENABLE_POLARITY          GFX_ACTIVE_HIGH
+            #define GFX_HSYNC_POLARITY                  GFX_ACTIVE_LOW
+            #define GFX_VSYNC_POLARITY                  GFX_ACTIVE_LOW
+            #define GFX_DISPLAYPOWER_POLARITY           GFX_ACTIVE_HIGH
+        #endif //#if (GFX_USE_DISPLAY_CONTROLLER_MCHP_DA210)
+	#endif // #if defined (GFX_USE_DISPLAY_PANEL_35QVW0T)  
+
 
 // Using PH480272T_005_I06Q Display Panel
 	#if defined (GFX_USE_DISPLAY_PANEL_PH480272T_005_I06Q) 
@@ -687,8 +716,8 @@
     #define USE_TCON_SSD1289
     #define USE_TCON_MODULE
     
-#elif defined (GFX_USE_DISPLAY_PANEL_TFT_G320240DTSW_69W_TP_E)
-    #define GFX_USE_TCON_HX8238
+#elif defined (GFX_USE_DISPLAY_PANEL_TFT_G320240DTSW_69W_TP_E) || defined (GFX_USE_DISPLAY_PANEL_35QVW0T)
+    #define USE_TCON_HX8238
     #define USE_TCON_MODULE
 
 #else
@@ -763,7 +792,7 @@
         #define PMP_DATA_HOLD_TIME                 (0)    
 
     #else
-        #error "USE_GFX_PMP is defined but no timing values are defined for the selected hardware inteface"
+        #error "USE_GFX_PMP is defined but no timing values are defined for the selected hardware interface. Define the following timing paraters: PMP_DATA_SETUP_TIME, PMP_DATA_WAIT_TIME, PMP_DATA_HOLD_TIME."
     #endif
 
 #endif //#if defined (USE_GFX_PMP) 
@@ -823,7 +852,8 @@
 		#define EPMPCS2_DATA_HOLD_TIME		        (0)     // bsaed on OE to data high-Z output 
     
     #else
-        #error "USE_GFX_PMP is defined but no timing values are defined for the selected hardware inteface"
+        #error "USE_GFX_EPMP is defined but no timing values are defined for the selected hardware interface. Define the following timing paraters: EPMPCSx_DATA_SETUP_TIME, EPMPCSx_DATA_WAIT_TIME, EPMPCSx_DATA_HOLD_TIME, where x is the chip select number (1 or 2)."
+
     #endif
     
 #endif //#if defined (USE_GFX_PMP) || defined (USE_GFX_EPMP)
@@ -971,6 +1001,9 @@
     #elif defined (GFX_USE_DISPLAY_PANEL_TFT_640480_8_E)    
         #define BACKLIGHT_ENABLE_LEVEL      0
         #define BACKLIGHT_DISABLE_LEVEL     1
+    #elif defined (GFX_USE_DISPLAY_PANEL_35QVW0T)
+        #define BACKLIGHT_ENABLE_LEVEL      0
+        #define BACKLIGHT_DISABLE_LEVEL     1
     #else
         // default setting is logic low  
         #define BACKLIGHT_ENABLE_LEVEL      0
@@ -978,7 +1011,7 @@
     #endif    
 
     
-#if defined (GFX_PICTAIL_V3) || defined (GFX_PICTAIL_V3E) || defined(GFX_PICTAIL_LCC)
+#if defined (GFX_PICTAIL_V3) || defined (GFX_PICTAIL_V3E) || defined(GFX_PICTAIL_LCC) 
 
     #if defined(__dsPIC33FJ128GP804__) || defined(__PIC24HJ128GP504__)
         // When using the supported dsPIC and PIC24H devices
@@ -1097,7 +1130,7 @@
 
     #else
     
-        #error "Selected Device is not supported"
+        #error "Selected PIC Device is not supported"
         
     #endif
 
@@ -1337,86 +1370,6 @@
         #endif
 
     // end of #if defined (GFX_USE_DISPLAY_CONTROLLER_LGDP4531)
-
-    #elif defined (GFX_USE_DISPLAY_CONTROLLER_SSD1906)
-
-            #ifndef __PIC32MX__
-	            // Definitions for reset pin
-                #define DisplayResetConfig()        TRISCbits.TRISC1 = 0    
-                #define DisplayResetEnable()        LATCbits.LATC1 = 0
-                #define DisplayResetDisable()       LATCbits.LATC1 = 1
-
-	            // Definitions for RS pin
-                #define DisplayCmdDataConfig()      TRISCbits.TRISC2 = 0
-                #define DisplaySetCommand()         LATCbits.LATC2 = 0
-                #define DisplaySetData()            LATCbits.LATC2 = 1
-
-	            // Definitions for CS pin
-                #define DisplayConfig()             TRISDbits.TRISD10 = 0             
-                #define DisplayEnable()             LATDbits.LATD10 = 0
-                #define DisplayDisable()            LATDbits.LATD10 = 1
-
-                // Definitions for POWER ON pin
-                #define DisplayPowerConfig()        TRISCbits.TRISC3 = 0
-                #define DisplayPowerOn()            LATCbits.LATC3 = 1
-                #define DisplayPowerOff()           LATCbits.LATC3 = 0
-
-                // Extended address lines
-                #define DisplayAddr0Config()        TRISDbits.TRISD3 = 0
-                #define DisplaySetAddr0()           LATDbits.LATD3 = 1
-                #define DisplayClearAddr0()         LATDbits.LATD3 = 0
-
-                #define DisplayAddr17Config()       TRISGbits.TRISG14 = 0
-                #define DisplaytSetAddr17()         TRISGbits.TRISG14 = 1
-                #define DisplayClearAddr17()        TRISGbits.TRISG14 = 0
-
-                // Definitions for FLASH CS pin
-                #define DisplayFlashConfig()        TRISDbits.TRISD1 = 0        
-                #define DisplayFlashEnable()        LATDbits.LATD1 = 1
-                #define DisplayFlashDisable()       LATDbits.LATD1 = 0
-
-            #else
-            /********
-             * PIC32 will use the SET and CLR SFRs for the I/O.
-             * These are atomic settings that are recommended when
-             * modifying SFRs
-             ********/
-	            // Definitions for reset pin
-                #define DisplayResetConfig()        TRISCCLR = _TRISC_TRISC1_MASK    
-                #define DisplayResetEnable()        LATCCLR = _LATC_LATC1_MASK
-                #define DisplayResetDisable()       LATCSET = _LATC_LATC1_MASK
-
-	            // Definitions for RS pin
-                #define DisplayCmdDataConfig()      TRISCCLR = _TRISC_TRISC2_MASK
-                #define DisplaySetCommand()         LATCCLR = _LATC_LATC2_MASK
-                #define DisplaySetData()            LATCSET = _LATC_LATC2_MASK
-
-	            // Definitions for CS pin
-                #define DisplayConfig()             TRISDCLR = _TRISD_TRISD10_MASK
-                #define DisplayEnable()             LATDCLR = _LATD_LATD10_MASK
-                #define DisplayDisable()            LATDSET = _LATD_LATD10_MASK
-
-                // Definitions for POWER ON pin
-                #define DisplayPowerConfig()        TRISCCLR = _TRISC_TRISC3_MASK
-                #define DisplayPowerOn()            LATCSET = _LATC_LATC3_MASK 
-                #define DisplayPowerOff()           LATCCLR = _LATC_LATC3_MASK
-
-                // Extended address lines
-                #define DisplayAddr0Config()        TRISDCLR = _TRISD_TRISD3_MASK
-                #define DisplaySetAddr0()           LATDCLR = _LATD_LATD3_MASK
-                #define DisplayClearAddr0()         LATDSET = _LATD_LATD3_MASK
-
-                #define DisplayAddr17Config()       TRISGCLR = _TRISD_TRISG14_MASK
-                #define DisplaytSetAddr17()         LATGCLR = _LATD_LATG14_MASK
-                #define DisplayClearAddr17()        LATGSET = _LATD_LATG14_MASK
-
-                // Definitions for FLASH CS pin
-                #define DisplayFlashConfig()        TRISDCLR = _TRISD_TRISD1_MASK     
-                #define DisplayFlashEnable()        LATDCLR = _LATD_LATD1_MASK
-                #define DisplayFlashDisable()       LATDSET = _LATD_LATD1_MASK
-
-            #endif
-    // end of #elif defined (GFX_USE_DISPLAY_CONTROLLER_SSD1906)        
     #endif
 
 // end of #elif defined (GFX_PICTAIL_V2)
@@ -1836,7 +1789,6 @@
 
 		#endif
 
-    // end of #elif defined (GFX_PICTAIL_V3) || defined (GFX_PICTAIL_V3E) ...
 	#elif defined(MIKRO_BOARD)
 	    #if defined(__PIC24FJ256GB110__)
             #define ADC_XPOS    13
@@ -1856,7 +1808,7 @@
 	        #define LAT_YNEG    LATBbits.LATB10
             #define TRIS_YNEG   TRISBbits.TRISB10
 		#endif
-	#endif
+	#endif // end of #elif defined (GFX_PICTAIL_V3) || defined (GFX_PICTAIL_V3E) ...
 
 	/*********************************************************************
 	* Touch Screen X and Y orientation
@@ -1904,8 +1856,22 @@
 		  defined (PIC24FJ256DA210_DEV_BOARD)   || \
 	      defined (MEB_BOARD) 
 	/* ----------------------------------------- */
-		#if defined (GFX_USE_DISPLAY_PANEL_TFT_G240320LTSW_118W_E) ||     \
-            defined (GFX_USE_DISPLAY_PANEL_TFT_640480_8_E)	       ||     \
+		#if defined (GFX_USE_DISPLAY_PANEL_TFT_G240320LTSW_118W_E) 
+
+			#if (DISP_ORIENTATION == 0)	
+				#define TOUCHSCREEN_RESISTIVE_SWAP_XY
+				#define TOUCHSCREEN_RESISTIVE_FLIP_Y
+			#elif (DISP_ORIENTATION == 180)	
+				#define TOUCHSCREEN_RESISTIVE_SWAP_XY
+                #define TOUCHSCREEN_RESISTIVE_CALIBRATION_SCALE_FACTOR   5     
+			#elif (DISP_ORIENTATION == 270)	
+				#define TOUCHSCREEN_RESISTIVE_FLIP_Y
+                #define TOUCHSCREEN_RESISTIVE_CALIBRATION_SCALE_FACTOR   5     
+			#endif	
+
+        #endif
+
+		#if defined (GFX_USE_DISPLAY_PANEL_TFT_640480_8_E)	       ||     \
             defined (GFX_USE_DISPLAY_PANEL_TFT_800480_33_E)	
 
 			#if (DISP_ORIENTATION == 0)	
@@ -1913,10 +1879,10 @@
 				#define TOUCHSCREEN_RESISTIVE_FLIP_Y
 			#elif (DISP_ORIENTATION == 180)	
 				#define TOUCHSCREEN_RESISTIVE_SWAP_XY
-				#define TOUCHSCREEN_RESISTIVE_FLIP_X
+                #define TOUCHSCREEN_RESISTIVE_CALIBRATION_SCALE_FACTOR   5     
 			#elif (DISP_ORIENTATION == 270)	
-				#define TOUCHSCREEN_RESISTIVE_FLIP_X
 				#define TOUCHSCREEN_RESISTIVE_FLIP_Y
+                #define TOUCHSCREEN_RESISTIVE_CALIBRATION_SCALE_FACTOR   4     
 			#endif	
 
         #endif
@@ -1926,10 +1892,10 @@
 
             #if (DISP_ORIENTATION == 90)	
 				#define TOUCHSCREEN_RESISTIVE_SWAP_XY
-				#define TOUCHSCREEN_RESISTIVE_FLIP_X
+                #define TOUCHSCREEN_RESISTIVE_CALIBRATION_SCALE_FACTOR    6
 			#elif (DISP_ORIENTATION == 180)	
-				#define TOUCHSCREEN_RESISTIVE_FLIP_X
 				#define TOUCHSCREEN_RESISTIVE_FLIP_Y
+                #define TOUCHSCREEN_RESISTIVE_CALIBRATION_SCALE_FACTOR    5
 			#elif (DISP_ORIENTATION == 270)	
 				#define TOUCHSCREEN_RESISTIVE_SWAP_XY
 				#define TOUCHSCREEN_RESISTIVE_FLIP_Y
@@ -2199,7 +2165,7 @@
 				#define SST25_SDI_LAT    LATGbits.LATG7      // SPI data in,  I/O pin latch.
 				#define SST25_SDI_ANS    ANSELGbits.ANSG7    // SPI data in, I/O pin analog/digital selection.
 			#else
-				#error "SPI Channel can't be used for SPI Flash"
+				#error "When using dsPIC33E or PIC24E starter kits, MultiMedia Expansion Board (MEB) needs to use SPI channel 2 (SST25_SPI_CHANNEL == 2) for for SPI Flash"
 			#endif
 			
 		#else
@@ -2216,7 +2182,7 @@
 	    		#define SST25_CS_LAT        LATFbits.LATF12
 	    		#define SPI_FLASH_CHANNEL   CPLD_SPI3A
 	    	#else
-	    		#error "SPI Channel can't be used for SPI Flash"
+				#error "MultiMedia Expansion Board (MEB) needs to use SPI channels 2,3 or 4 (SST25_SPI_CHANNEL == 2, 3 or 4) for for SPI Flash"
 	    	#endif
 	    #endif
 
@@ -2324,7 +2290,7 @@
 
 	/* ----------------------------------------- */
 	#if defined (PIC24FJ256DA210_DEV_BOARD) 
-		#if defined (GFX_USE_DISPLAY_PANEL_TFT_G240320LTSW_118W_E)
+		#if defined (GFX_USE_DISPLAY_PANEL_TFT_G240320LTSW_118W_E) || defined (GFX_USE_DISPLAY_PANEL_35QVW0T)
 	/* ----------------------------------------- */
 		
 		#define TCON_CS_LAT      LATAbits.LATA0   //_RA0
@@ -2351,25 +2317,48 @@
 		#if defined (GFX_USE_DISPLAY_PANEL_TFT_G240320LTSW_118W_E)
 	/* ----------------------------------------- */
 		
-		#define TCON_CS_LAT      LATCbits.LATC2   //_RA0
-		#define TCON_CS_TRIS     TRISCbits.TRISC2 //_TRISA0
+		#define TCON_CS_LAT      LATCbits.LATC2   
+		#define TCON_CS_TRIS     TRISCbits.TRISC2 
 		#define TCON_CS_DIG()
-	    
-		#define TCON_SCL_LAT     LATDbits.LATD10   //_RD8
-		#define TCON_SCL_TRIS    TRISDbits.TRISD10 //_TRISD8
+
+	      #if defined(__32MX795F512L__) 
+		#define TCON_SCL_LAT     LATDbits.LATD10   
+		#define TCON_SCL_TRIS    TRISDbits.TRISD10 
 		#define TCON_SCL_DIG()
 	    
-		#define TCON_SDO_LAT     LATDbits.LATD0   //_RD0
-		#define TCON_SDO_TRIS    TRISDbits.TRISD0 //_TRISB1
+		#define TCON_SDO_LAT     LATDbits.LATD0   
+		#define TCON_SDO_TRIS    TRISDbits.TRISD0 
 		#define TCON_SDO_DIG()   1;
+	      #else
+		#define TCON_SCL_LAT     LATFbits.LATF6   
+		#define TCON_SCL_TRIS    TRISFbits.TRISF6 
+		#define TCON_SCL_DIG()
 	    
-		#define TCON_DC_LAT      LATBbits.LATB3   //_RB0
-		#define TCON_DC_TRIS     TRISBbits.TRISB3 //_TRISB0
+		#define TCON_SDO_LAT     LATFbits.LATF8   
+		#define TCON_SDO_TRIS    TRISFbits.TRISF8 
+		#define TCON_SDO_DIG()   1;
+            #endif   
+
+		#define TCON_DC_LAT      LATBbits.LATB3   
+		#define TCON_DC_TRIS     TRISBbits.TRISB3 
 		#define TCON_DC_DIG()    1;
 		
 		#endif // #if defined (GFX_USE_DISPLAY_PANEL_TFT_G240320LTSW_118W_E)
 	#endif // #if defined (DA210_DEV_BOARD)...
 
+
+/*********************************************************************
+* IO FOR THE BEEPER
+*********************************************************************/
+#if defined (GFX_PICTAIL_V2) 
+	#if defined(__dsPIC33FJ128GP804__) || defined(__PIC24HJ128GP504__)
+		#define BEEP_TRIS_BIT   TRISBbits.TRISB4
+		#define BEEP_LAT_BIT    LATBbits.LATB4
+	#else
+		#define BEEP_TRIS_BIT   TRISDbits.TRISD0
+		#define BEEP_LAT_BIT    LATDbits.LATD0
+	#endif
+#endif // #if defined (GFX_PICTAIL_V2)
 
 /*********************************************************************
 * IPU OPERATION MACROS.
@@ -2406,7 +2395,10 @@
         #define GFX_IPU_TEMP_DATA_TRANSFER_ARRAY_SIZE   (1024)
 
 	#else
-		#warning "EPMP CS1 Base Address not defined. If you are using IPU make sure that the GFX_COMPRESSED_DATA_RAM_ADDRESS & GFX_DECOMPRESSED_DATA_RAM_ADDRESS are allocated properly in internal memory."                   
+        // a check if the buffer start address is mapped outside the PIC24FJ256DA210
+        #if (GFX_DISPLAY_BUFFER_START_ADDRESS >= 0x00017700ul)
+		    #warning "EPMP CS1 or CS2 Base Addresses are not defined. If you are using IPU make sure that the GFX_COMPRESSED_DATA_RAM_ADDRESS & GFX_DECOMPRESSED_DATA_RAM_ADDRESS are allocated properly in internal memory."                   
+        #endif
     #endif
 
 #endif //#if defined (PIC24FJ256DA210_DEV_BOARD)
@@ -2423,18 +2415,19 @@ typedef enum
 #if defined (PIC24FJ256DA210_DEV_BOARD)
     #if defined(__PIC24FJ256DA210__)
         #define HardwareButtonInit()
-        #define GetHWButtonTouchCal()       (PORTGbits.RG8)
         #define GetHWButtonProgram()        (PORTEbits.RE9)
         #define GetHWButtonScanDown()       (HW_BUTTON_RELEASE)
         #define GetHWButtonScanUp()         (HW_BUTTON_RELEASE) 
         #define GetHWButtonCR()             (PORTGbits.RG8)
         #define GetHWButtonFocus()          (PORTEbits.RE9)
+        #define GetHWButtonLeft()           (PORTGbits.RG8)
+        #define GetHWButtonCenter()         (PORTEbits.RE9)
+        #define GetHWButtonRight()          (PORTBbits.RB5)
     #endif 
  
 #elif defined (MEB_BOARD)
 	#if defined(__dsPIC33E__) || defined(__PIC24E__)
 		#define HardwareButtonInit()         ANSELBbits.ANSB15 = 0; TRISBbits.TRISB15 = 1;
-		#define GetHWButtonTouchCal()       (PORTBbits.RB15)
 	    #define GetHWButtonProgram()        (PORTBbits.RB15)
 	    #define GetHWButtonScanDown()       (PORTBbits.RB3)
 	    #define GetHWButtonScanUp()         (PORTBbits.RB1)  
@@ -2443,7 +2436,6 @@ typedef enum
 	#else
 	    #define HardwareButtonInit()        (AD1PCFGSET = _AD1PCFG_PCFG1_MASK | _AD1PCFG_PCFG0_MASK | _AD1PCFG_PCFG3_MASK | _AD1PCFG_PCFG4_MASK | _AD1PCFG_PCFG15_MASK,\
 	                                         CNPUESET = _CNPUE_CNPUE2_MASK | _CNPUE_CNPUE3_MASK | _CNPUE_CNPUE5_MASK | _CNPUE_CNPUE6_MASK | _CNPUE_CNPUE12_MASK)
-	    #define GetHWButtonTouchCal()       (PORTBbits.RB15)
 	    #define GetHWButtonProgram()        (PORTBbits.RB15)
 	    #define GetHWButtonScanDown()       (PORTBbits.RB3)
 	    #define GetHWButtonScanUp()         (PORTBbits.RB1)  
@@ -2453,7 +2445,6 @@ typedef enum
 #elif defined (MIKRO_BOARD)
     #if defined(__PIC24FJ256GB110__)
         #define HardwareButtonInit()
-        #define GetHWButtonTouchCal()       (HW_BUTTON_RELEASE)
         #define GetHWButtonProgram()        (HW_BUTTON_RELEASE)
         #define GetHWButtonScanDown()       (HW_BUTTON_RELEASE)
         #define GetHWButtonScanUp()         (HW_BUTTON_RELEASE)
@@ -2472,14 +2463,12 @@ typedef enum
         #ifdef USE_16BIT_PMP
             #define HardwareButtonInit()
             #define GetHWButtonProgram()        (HW_BUTTON_RELEASE)
-            #define GetHWButtonTouchCal()       (HW_BUTTON_RELEASE)
             #define GetHWButtonScanDown()       (HW_BUTTON_RELEASE)
             #define GetHWButtonScanUp()         (HW_BUTTON_RELEASE)
             #define GetHWButtonCR()             (HW_BUTTON_RELEASE)
             #define GetHWButtonFocus()          (HW_BUTTON_RELEASE)
         #else
             #define HardwareButtonInit()        (CNPUESET = _CNPUE_CNPUE16_MASK | _CNPUE_CNPUE15_MASK | _CNPUE_CNPUE19_MASK)
-            #define GetHWButtonTouchCal()       (PORTDbits.RD6)
             #define GetHWButtonProgram()        (PORTDbits.RD6)
             #define GetHWButtonScanDown()       (HW_BUTTON_RELEASE)
             #define GetHWButtonScanUp()         (HW_BUTTON_RELEASE)  
@@ -2489,14 +2478,12 @@ typedef enum
       #else
         #define HardwareButtonInit()
         #ifdef USE_16BIT_PMP
-            #define GetHWButtonTouchCal()       (PORTAbits.RA7)
             #define GetHWButtonProgram()        (PORTAbits.RA7)
             #define GetHWButtonScanDown()       (HW_BUTTON_RELEASE)
             #define GetHWButtonScanUp()         (HW_BUTTON_RELEASE)
             #define GetHWButtonCR()             (HW_BUTTON_RELEASE)
             #define GetHWButtonFocus()          (HW_BUTTON_RELEASE)
         #else
-            #define GetHWButtonTouchCal()       (PORTDbits.RD6)
             #define GetHWButtonProgram()        (PORTDbits.RD7)
             #define GetHWButtonScanDown()       (PORTDbits.RD13)
             #define GetHWButtonScanUp()         (PORTAbits.RA7)  
@@ -2524,10 +2511,10 @@ typedef enum
 /*********************************************************************
 * RTCC DEFAULT INITIALIZATION (these are values to initialize the RTCC
 *********************************************************************/
-#define RTCC_DEFAULT_DAY        15      // 15th
+#define RTCC_DEFAULT_DAY        18      // 18th
 #define RTCC_DEFAULT_MONTH      10      // October
-#define RTCC_DEFAULT_YEAR       10      // 2010
-#define RTCC_DEFAULT_WEEKDAY    05      // Friday
+#define RTCC_DEFAULT_YEAR       11      // 2011
+#define RTCC_DEFAULT_WEEKDAY    02      // Tuesday
 #define RTCC_DEFAULT_HOUR       10      // 10:10:01
 #define RTCC_DEFAULT_MINUTE     10
 #define RTCC_DEFAULT_SECOND     01
@@ -2733,5 +2720,7 @@ typedef enum
 #endif // #ifdef (MEB_BOARD)
 
 #endif // __HARDWARE_PROFILE_H
+
+
 
 

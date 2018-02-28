@@ -75,7 +75,7 @@
 // INCLUDES 
 ///////////////////////////////
 #include <htc.h>
-#include <includes/mTouchCVD_Config.h>
+#include "mTouchCVD_Config.h"
  
 ///////////////////////////////
 // GLOBAL VARIABLES
@@ -138,22 +138,22 @@ void    CVD_Filter_Init         (void);
 
 // Include the hardware profile header file that corresponds to the currently selected PIC microcontroller.
 #if     defined(_16F1827) || defined(_16LF1827) || defined(_16F1826) || defined(_16LF1826) || defined(_16F1823) || defined(_16LF1823) || defined(_12F1822) || defined(_12LF1822) || defined(_16F1824) || defined(_16LF1824) || defined(_16F1825) || defined(_16LF1825) || defined(_16F1828) || defined(_16LF1828) || defined(_16F1829) || defined(_16LF1829)
-    #include <includes/mTouchCVD_HardwareProfile_16F182x.h>
+    #include "includes/mTouchCVD_HardwareProfile_16F182x.h"
     #define _16F182x
 #elif   defined(_16F1933) || defined(_16LF1933) || defined(_16F1934) || defined(_16LF1934) || defined(_16F1936) || defined(_16LF1936) || defined(_16F1937) || defined(_16LF1937) || defined(_16F1938) || defined(_16LF1938) || defined(_16F1939) || defined(_16LF1939)
-    #include <includes/mTouchCVD_HardwareProfile_16F193x.h>
+    #include "includes/mTouchCVD_HardwareProfile_16F193x.h"
     #define _16F193x
 #elif   defined(_16F1946) || defined(_16LF1946) || defined(_16F1947) || defined(_16LF1947) 
-    #include <includes/mTouchCVD_HardwareProfile_16F194x.h>
+    #include "includes/mTouchCVD_HardwareProfile_16F194x.h"
     #define _16F194x
 #elif   defined(_16F1526) || defined(_16LF1526) || defined(_16F1527) || defined(_16LF1527) 
-    #include <includes/mTouchCVD_HardwareProfile_16F152x.h>
+    #include "includes/mTouchCVD_HardwareProfile_16F152x.h"
     #define _16F152x
 #elif   defined(_16F1516) || defined(_16LF1516) || defined(_16F1517) || defined(_16LF1517) || defined(_16F1518) || defined(_16LF1518) || defined(_16F1519) || defined(_16LF1519)
-    #include <includes/mTouchCVD_HardwareProfile_16F151x.h> 
+    #include "includes/mTouchCVD_HardwareProfile_16F151x.h" 
     #define _16F151x
 #elif   defined(_12F615) || defined(_12HV615) || defined(_12F617)
-    #include <includes/mTouchCVD_HardwareProfile_12F61x.h>
+    #include "includes/mTouchCVD_HardwareProfile_12F61x.h"
     #define _12F61x
 #else
     #error The currently chosen processor is not yet supported by the mTouch CVD Framework.
@@ -162,16 +162,16 @@ void    CVD_Filter_Init         (void);
 // Include the macro library header file that corresponds to the currently selected PIC microcontroller's core.
 #if defined(_PIC14E)
     // Enhanced Mid-range
-    #include <includes/mTouchCVD_macroLibrary_PIC16F1.h>
+    #include "mTouchCVD_macroLibrary_PIC16F1.h"
 #elif defined(_PIC14)
     // Normal Mid-range
-    #include <includes/mTouchCVD_macroLibrary_PIC16F.h>
+    #include "mTouchCVD_macroLibrary_PIC16F.h"
 #else
     #error The currently chosen processor core does not have a matching macroLibrary file associated with it.
 #endif
 
 // Include the framework library's generic header file to perform checks and definitions common to all microcontrollers.
-#include <includes/mTouchCVD_processConfiguration.h>
+#include "mTouchCVD_processConfiguration.h"
 /// @endcond
 
 #endif
