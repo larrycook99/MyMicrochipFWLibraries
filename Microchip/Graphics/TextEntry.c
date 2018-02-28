@@ -34,11 +34,17 @@
  * CLAIMS BY THIRD PARTIES (INCLUDING BUT NOT LIMITED TO ANY DEFENSE THEREOF),
  * OR OTHER SIMILAR COSTS.
  *
- * Author               Date        Comment
+ * Date        Comment
  *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * Harold Serrano		10/24/08	...
- * PAT					07/01/09	Updated for 2D accelerated primitive support.
- * PAT					04/15/10	Corrected TeSetBuffer() issue on string max size.
+ * 10/24/08	    ...
+ * 07/01/09	    Updated for 2D accelerated primitive support.
+ * 04/15/10	    Corrected TeSetBuffer() issue on string max size.
+ * 08/04/11     Modified widget draw states to correct flow of rendering.
+ *              Added check on the Bar() calls in cases when the non-blocking
+ *              is used.
+ * 12/02/11     Fix memory leak issue when TeCreateKeyMembers fails to allocate
+ *              memory for all keys.
+ * 12/13/11     Fix issue when displaying string with length equal to max size.
  *****************************************************************************/
 #include "Graphics/Graphics.h"
 
@@ -112,8 +118,9 @@ TEXTENTRY *TeCreate
     {
 
         //create the key members, return null if not successful
-        if(TeCreateKeyMembers(pTe, pText) == 0)
+        if(TeCreateKeyMembers(pTe, pText) == NULL)
         {
+            TeDelKeyMembers(pTe);
             GFX_free(pTe);
             return (NULL);
         }
@@ -163,397 +170,395 @@ WORD TeDraw(void *pObj)
 
     pTe = (TEXTENTRY *)pObj;
 
-    if(IsDeviceBusy())
-        return (0);
+	while(1)
+	{
+		if(IsDeviceBusy())
+			return (0);
 
-    switch(state)
-    {
-        case TE_START:
-            if(IsDeviceBusy())
-                return (0);
+		switch(state)
+		{
+			case TE_START:
 
-            if(GetState(pTe, TE_HIDE))
-            {
-                SetColor(pTe->hdr.pGolScheme->CommonBkColor);
-                Bar(pTe->hdr.left, pTe->hdr.top, pTe->hdr.right, pTe->hdr.bottom);
-                state = TE_HIDE_WIDGET;
-                goto te_hide_widget;
-            }
-            else
-            {
-                if(GetState(pTe, TE_DRAW))
+				if(GetState(pTe, TE_HIDE))
+				{
+					SetColor(pTe->hdr.pGolScheme->CommonBkColor);
+					state = TE_HIDE_WIDGET;
+					// no break here so it falls through to the TE_HIDE_WIDGET state.
+				}
+				else
+				{
+					if(GetState(pTe, TE_DRAW))
+					{
+
+						/************DRAW THE WIDGET PANEL*****************************/
+						GOLPanelDraw
+						(
+							pTe->hdr.left,
+							pTe->hdr.top,
+							pTe->hdr.right,
+							pTe->hdr.bottom,
+							0,
+							pTe->hdr.pGolScheme->Color0,        //face color of panel
+							pTe->hdr.pGolScheme->EmbossDkColor, //emboss dark color
+							pTe->hdr.pGolScheme->EmbossLtColor, //emboss light color
+							NULL,
+							GOL_EMBOSS_SIZE
+						);
+						state = TE_DRAW_PANEL;
+						break;
+					}
+
+					// update the keys (if TE_UPDATE_TEXT is also set it will also be redrawn)
+					// at the states after the keys are updated
+					else if(GetState(pTe, TE_UPDATE_KEY))
+					{
+						state = TE_DRAW_KEY_INIT;
+						break;
+					}
+
+					// check if updating only the text displayed
+					else if(GetState(pTe, TE_UPDATE_TEXT))
+					{
+						state = TE_UPDATE_STRING_INIT;
+						break;
+					}
+				}
+
+			/*hide the widget*/
+			case TE_HIDE_WIDGET:
+			    // this state only gets entered if IsDeviceBusy() immediately after while(1) returns a 0.
+				if (!Bar(pTe->hdr.left, pTe->hdr.top, pTe->hdr.right, pTe->hdr.bottom))
+                    return (0);
+                else 
                 {
-
-                    /************DRAW THE WIDGET PANEL*****************************/
-                    GOLPanelDraw
-                    (
-                        pTe->hdr.left,
-                        pTe->hdr.top,
-                        pTe->hdr.right,
-                        pTe->hdr.bottom,
-                        0,
-                        pTe->hdr.pGolScheme->Color0,        //face color of panel
-                        pTe->hdr.pGolScheme->EmbossDkColor, //emboss dark color
-                        pTe->hdr.pGolScheme->EmbossLtColor, //emboss light color
-                        NULL,
-                        GOL_EMBOSS_SIZE
-                    );
-                    state = TE_DRAW_PANEL;
-                    goto te_draw_panel;
+    				state = TE_START;
+	    			return (1);
                 }
 
-                // update the keys (if TE_UPDATE_TEXT is also set it will also be redrawn)
-                // at the states after the keys are updated
-                else if(GetState(pTe, TE_UPDATE_KEY))
-                {
-                    state = TE_DRAW_KEY_INIT;
-                    goto te_draw_key_init_st;
-                }
+			/*Draw the widget of the Text-Entry*/
+			case TE_DRAW_PANEL:
+				if(!GOLPanelDrawTsk()) 
+					return (0);
+				state = TE_INIT_DRAW_EDITBOX;
 
-                // check if updating only the text displayed
-                else if(GetState(pTe, TE_UPDATE_TEXT))
-                {
-                    state = TE_UPDATE_STRING_INIT;
-                    goto te_update_string_init_st;
-                }
-            }
+			case TE_INIT_DRAW_EDITBOX:
 
-        /*hide the widget*/
-        case TE_HIDE_WIDGET:
-            te_hide_widget : if(IsDeviceBusy()) return (0);
-            state = TE_START;
-            return (1);
+				//Draw the editbox
+				GOLPanelDraw
+				(
+					pTe->hdr.left,
+					pTe->hdr.top,
+					pTe->hdr.right,
+					pTe->hdr.top + GetTextHeight(pTe->pDisplayFont) + (GOL_EMBOSS_SIZE << 1),
+					0,
+					pTe->hdr.pGolScheme->Color1; ,
+					pTe->hdr.pGolScheme->EmbossDkColor,
+					pTe->hdr.pGolScheme->EmbossLtColor,
+					NULL,
+					GOL_EMBOSS_SIZE
+				);
 
-        /*Draw the widget of the Text-Entry*/
-        case TE_DRAW_PANEL:
-            te_draw_panel : if(!GOLPanelDrawTsk()) return (0);
-            state = TE_INIT_DRAW_EDITBOX;
+				state = TE_DRAW_EDITBOX;
 
-        case TE_INIT_DRAW_EDITBOX:
+			case TE_DRAW_EDITBOX:
+				if(!GOLPanelDrawTsk())
+					return (0);
+				state = TE_DRAW_KEY_INIT;
 
-            //Draw the editbox
-            GOLPanelDraw
-            (
-            pTe->hdr.left,
-            pTe->hdr.top,
-            pTe->hdr.right,
-            pTe->hdr.top + GetTextHeight(pTe->pDisplayFont) + (GOL_EMBOSS_SIZE << 1),
-            0,
-            pTe->hdr.pGolScheme->Color1; ,
-        pTe->hdr.pGolScheme->EmbossDkColor,
-        pTe->hdr.pGolScheme->EmbossLtColor,
-        NULL,
-        GOL_EMBOSS_SIZE
-            );
+			/* ********************************************************************* */
+			/*                  Update the keys                                      */
+			/* ********************************************************************* */
+			case TE_DRAW_KEY_INIT:
+				embossLtClr = pTe->hdr.pGolScheme->EmbossLtColor;
+				embossDkClr = pTe->hdr.pGolScheme->EmbossDkColor;
+				faceClr = pTe->hdr.pGolScheme->Color0;
 
-            state = TE_DRAW_EDITBOX;
+				// if the active key update flag is set, only one needs to be redrawn
+				if((GetState(pTe, TE_DRAW) != TE_DRAW) && (pTe->pActiveKey->update == TRUE))
+				{
+					CountOfKeys = (pTe->horizontalKeys * pTe->verticalKeys) -
+					1;
+					pKeyTemp = pTe->pActiveKey;
+				}
+				else
+				{
+					CountOfKeys = 0;
+					pKeyTemp = pTe->pHeadOfList;
+				}
 
-        case TE_DRAW_EDITBOX:
-            if(!GOLPanelDrawTsk())
-                return (0);
-            state = TE_DRAW_KEY_INIT;
+				state = TE_DRAW_KEY_SET_PANEL;
 
-        /* ********************************************************************* */
+			case TE_DRAW_KEY_SET_PANEL:
+				if(CountOfKeys < (pTe->horizontalKeys * pTe->verticalKeys))
+				{
 
-        /*                  Update the keys                                      */
+					// check if we need to draw the panel
+					if(GetState(pTe, TE_DRAW) != TE_DRAW)
+					{
+						if(pKeyTemp->update == TRUE)
+						{
 
-        /* ********************************************************************* */
-        case TE_DRAW_KEY_INIT:
-            te_draw_key_init_st : embossLtClr = pTe->hdr.pGolScheme->EmbossLtColor;
-            embossDkClr = pTe->hdr.pGolScheme->EmbossDkColor;
-            faceClr = pTe->hdr.pGolScheme->Color0;
+							// set the colors needed
+							if(GetState(pTe, TE_KEY_PRESSED))
+							{
+								embossLtClr = pTe->hdr.pGolScheme->EmbossDkColor;
+								embossDkClr = pTe->hdr.pGolScheme->EmbossLtColor;
+								faceClr = pTe->hdr.pGolScheme->Color1;
+							}
+							else
+							{
+								embossLtClr = pTe->hdr.pGolScheme->EmbossLtColor;
+								embossDkClr = pTe->hdr.pGolScheme->EmbossDkColor;
+								faceClr = pTe->hdr.pGolScheme->Color0;
+							}
+						}
+						else
+						{
+							state = TE_DRAW_KEY_UPDATE;
+							break;
+						}
+					}
 
-            // if the active key update flag is set, only one needs to be redrawn
-            if((GetState(pTe, TE_DRAW) != TE_DRAW) && (pTe->pActiveKey->update == TRUE))
-            {
-                CountOfKeys = (pTe->horizontalKeys * pTe->verticalKeys) -
-                1;
-                pKeyTemp = pTe->pActiveKey;
-            }
-            else
-            {
-                CountOfKeys = 0;
-                pKeyTemp = pTe->pHeadOfList;
-            }
+					if(GetState(pTe, TE_DISABLED) == TE_DISABLED)
+					{
+						faceClr = SetColor(pTe->hdr.pGolScheme->ColorDisabled);
+					}
 
-            state = TE_DRAW_KEY_SET_PANEL;
+					// set up the panel
+					GOLPanelDraw
+					(
+						pKeyTemp->left,
+						pKeyTemp->top,
+						pKeyTemp->right,
+						pKeyTemp->bottom,
+						0,
+						faceClr,
+						embossLtClr,
+						embossDkClr,
+						NULL,
+						GOL_EMBOSS_SIZE
+					);
 
-        case TE_DRAW_KEY_SET_PANEL:
-            te_draw_key_set_panel_st : if(CountOfKeys < (pTe->horizontalKeys * pTe->verticalKeys))
-            {
+					state = TE_DRAW_KEY_DRAW_PANEL;
+				}
+				else
+				{
+					state = TE_UPDATE_STRING_INIT;
+					break;
+				}
 
-                // check if we need to draw the panel
-                if(GetState(pTe, TE_DRAW) != TE_DRAW)
-                {
-                    if(pKeyTemp->update == TRUE)
-                    {
+			case TE_DRAW_KEY_DRAW_PANEL:
+				if(!GOLPanelDrawTsk())
+					return (0);
 
-                        // set the colors needed
-                        if(GetState(pTe, TE_KEY_PRESSED))
-                        {
-                            embossLtClr = pTe->hdr.pGolScheme->EmbossDkColor;
-                            embossDkClr = pTe->hdr.pGolScheme->EmbossLtColor;
-                            faceClr = pTe->hdr.pGolScheme->Color1;
-                        }
-                        else
-                        {
-                            embossLtClr = pTe->hdr.pGolScheme->EmbossLtColor;
-                            embossDkClr = pTe->hdr.pGolScheme->EmbossDkColor;
-                            faceClr = pTe->hdr.pGolScheme->Color0;
-                        }
-                    }
-                    else
-                    {
-                        state = TE_DRAW_KEY_UPDATE;
-                        goto te_draw_key_update_st;
-                    }
-                }
+				// reset the update flag since the key panel is already redrawn   	
+				pKeyTemp->update = FALSE;
 
-                if(GetState(pTe, TE_DISABLED) == TE_DISABLED)
-                {
-                    faceClr = SetColor(pTe->hdr.pGolScheme->ColorDisabled);
-                }
+				//set the text coordinates of the drawn key
+				xText = ((pKeyTemp->left) + (pKeyTemp->right) - (pKeyTemp->textWidth)) >> 1;
+				yText = ((pKeyTemp->bottom) + (pKeyTemp->top) - (pKeyTemp->textHeight)) >> 1;
 
-                // set up the panel
-                GOLPanelDraw
-                (
-                    pKeyTemp->left,
-                    pKeyTemp->top,
-                    pKeyTemp->right,
-                    pKeyTemp->bottom,
-                    0,
-                    faceClr,
-                    embossLtClr,
-                    embossDkClr,
-                    NULL,
-                    GOL_EMBOSS_SIZE
-                );
+				//set color of text
+				// if the object is disabled, draw the disabled colors
+				if(GetState(pTe, TE_DISABLED) == TE_DISABLED)
+				{
+					SetColor(pTe->hdr.pGolScheme->TextColorDisabled);
+				}
+				else
+				{
+					if((GetState(pTe, TE_DRAW) != TE_DRAW) && (GetState(pTe, TE_KEY_PRESSED)) == TE_KEY_PRESSED)
+					{
+						SetColor(pTe->hdr.pGolScheme->TextColor1);
+					}
+					else
+					{
+						SetColor(pTe->hdr.pGolScheme->TextColor0);
+					}
+				}
 
-                state = TE_DRAW_KEY_DRAW_PANEL;
-            }
-            else
-            {
-                state = TE_UPDATE_STRING_INIT;
-                goto te_update_string_init_st;
-            }
+				//output the text
+				MoveTo(xText, yText);
 
-        case TE_DRAW_KEY_DRAW_PANEL:
-            if(!GOLPanelDrawTsk())
-                return (0);
+				// set the font to be used
+				SetFont(pTe->hdr.pGolScheme->pFont);
 
-            // reset the update flag since the key panel is already redrawn   	
-            pKeyTemp->update = FALSE;
+				state = TE_DRAW_KEY_TEXT;
 
-            //set the text coordinates of the drawn key
-            xText = ((pKeyTemp->left) + (pKeyTemp->right) - (pKeyTemp->textWidth)) >>
-            1;
-            yText = ((pKeyTemp->bottom) + (pKeyTemp->top) - (pKeyTemp->textHeight)) >>
-            1;
+			case TE_DRAW_KEY_TEXT:
+				if(!OutText(pKeyTemp->pKeyName))
+					return (0);
+				state = TE_DRAW_KEY_UPDATE;
 
-            //set color of text
-            // if the object is disabled, draw the disabled colors
-            if(GetState(pTe, TE_DISABLED) == TE_DISABLED)
-            {
-                SetColor(pTe->hdr.pGolScheme->TextColorDisabled);
-            }
-            else
-            {
-                if((GetState(pTe, TE_DRAW) != TE_DRAW) && (GetState(pTe, TE_KEY_PRESSED)) == TE_KEY_PRESSED)
-                {
-                    SetColor(pTe->hdr.pGolScheme->TextColor1);
-                }
-                else
-                {
-                    SetColor(pTe->hdr.pGolScheme->TextColor0);
-                }
-            }
+			case TE_DRAW_KEY_UPDATE:
 
-            //output the text
-            MoveTo(xText, yText);
+				// update loop variables
+				CountOfKeys++;
+				pKeyTemp = pKeyTemp->pNextKey;
 
-            // set the font to be used
-            SetFont(pTe->hdr.pGolScheme->pFont);
+				state = TE_DRAW_KEY_SET_PANEL;
+				break;
 
-            state = TE_DRAW_KEY_TEXT;
+			/* ********************************************************************* */
+			/*                  Update the displayed string                          */
+			/* ********************************************************************* */
+			case TE_UPDATE_STRING_INIT:
 
-        case TE_DRAW_KEY_TEXT:
-            if(!OutText(pKeyTemp->pKeyName))
-                return (0);
-            state = TE_DRAW_KEY_UPDATE;
+				// check if there are characters to remove
+				if(pTe->pActiveKey != NULL)
+				{
+					if(pTe->pActiveKey->command == TE_DELETE_COM)
+					{
+						if(pTe->CurrentLength == 0)
+						{
+							state = TE_START;
+							return (1);
+						}
+					}
+				}
+				else
+				{
 
-        case TE_DRAW_KEY_UPDATE:
-            te_draw_key_update_st :
+					// check if text indeed needs to be updated
+					if((pTe->CurrentLength == pTe->outputLenMax) && (GetState(pTe, TE_UPDATE_TEXT)))
+					{
+						state = TE_START;
+						return (1);
+					}
+				}
 
-            // update loop variables
-            CountOfKeys++;
-            pKeyTemp = pKeyTemp->pNextKey;
+				//set the clipping region
+				SetClipRgn
+				(
+					pTe->hdr.left + GOL_EMBOSS_SIZE,
+					pTe->hdr.top + GOL_EMBOSS_SIZE,
+					pTe->hdr.right - GOL_EMBOSS_SIZE,
+					pTe->hdr.top + GOL_EMBOSS_SIZE + GetTextHeight(pTe->pDisplayFont)
+				);
 
-            state = TE_DRAW_KEY_SET_PANEL;
-            goto te_draw_key_set_panel_st;
+				SetClip(1);     //set the clipping
+				if(GetState(pTe, TE_DRAW))
+				{
 
-        /* ********************************************************************* */
+					// update only the displayed text
+					// position the string rendering on the right position
+					if(GetState(pTe, TE_ECHO_HIDE))
+					{
 
-        /*                  Update the displayed string                          */
+						// fill the area with '*' character so we use the width of this character
+						MoveTo
+						(
+							pTe->hdr.right - 4 - GOL_EMBOSS_SIZE - (GetTextWidth(hideChar, pTe->pDisplayFont) * pTe->CurrentLength),
+							pTe->hdr.top + GOL_EMBOSS_SIZE
+						);
+					}
+					else
+					{
+						MoveTo
+						(
+							pTe->hdr.right - 4 - GOL_EMBOSS_SIZE - GetTextWidth(pTe->pTeOutput, pTe->pDisplayFont),
+							pTe->hdr.top + GOL_EMBOSS_SIZE
+						);
+					}
+				}
+				else if(GetState(pTe, TE_UPDATE_TEXT))
+				{
 
-        /* ********************************************************************* */
-        case TE_UPDATE_STRING_INIT:
-            te_update_string_init_st :
+					// erase the current text by drawing a bar over the edit box area
+					SetColor(pTe->hdr.pGolScheme->Color1);
 
-            // check if there are characters to remove
-            if(pTe->pActiveKey != NULL)
-            {
-                if(pTe->pActiveKey->command == TE_DELETE_COM)
-                {
-                    if(pTe->CurrentLength == 0)
-                    {
-                        state = TE_START;
-                        return (1);
-                    }
-                }
-            }
-            else
-            {
+					// we have to make sure we finish the Bar() first before we continue.
+					state = TE_WAIT_ERASE_EBOX_AREA;
+					break;
+				}
+				else
+				{
+					SetClip(0); //reset the clipping
+					state = TE_START;
+					return (1);
+				}
 
-                // check if text indeed needs to be updated
-                if(pTe->CurrentLength == pTe->outputLenMax)
-                {
-                    state = TE_START;
-                    return (1);
-                }
-            }
+				counter = 0;
+				state = TE_UPDATE_STRING;
+				break;
 
-            //set the clipping region
-            SetClipRgn
-            (
-                pTe->hdr.left + GOL_EMBOSS_SIZE,
-                pTe->hdr.top + GOL_EMBOSS_SIZE,
-                pTe->hdr.right - GOL_EMBOSS_SIZE,
-                pTe->hdr.top + GOL_EMBOSS_SIZE + GetTextHeight(pTe->pDisplayFont)
-            );
+			case TE_WAIT_ERASE_EBOX_AREA:
+                if (!Bar
+					(
+						pTe->hdr.left + GOL_EMBOSS_SIZE,
+						pTe->hdr.top + GOL_EMBOSS_SIZE,
+						pTe->hdr.right - GOL_EMBOSS_SIZE,
+						pTe->hdr.top + GOL_EMBOSS_SIZE + GetTextHeight(pTe->pDisplayFont)
+					))
+                    return 0;
 
-            SetClip(1);     //set the clipping
-            if(GetState(pTe, TE_DRAW))
-            {
+				// check if the command given is delete a character
+				if(pTe->pActiveKey->command == TE_DELETE_COM)
+				{
+					*(pTe->pTeOutput + (--pTe->CurrentLength)) = 0;
+				}
 
-                // update only the displayed text
-                // position the string rendering on the right position
-                if(GetState(pTe, TE_ECHO_HIDE))
-                {
+				// position the cursor to the start of string rendering
+				// notice that we need to remove the characters first before we position the cursor when
+				// deleting characters
+				if(GetState(pTe, TE_ECHO_HIDE))
+				{
 
-                    // fill the area with '*' character so we use the width of this character
-                    MoveTo
-                    (
-                        pTe->hdr.right - 4 - GOL_EMBOSS_SIZE - (GetTextWidth(hideChar, pTe->pDisplayFont) * pTe->CurrentLength),
-                        pTe->hdr.top + GOL_EMBOSS_SIZE
-                    );
-                }
-                else
-                {
-                    MoveTo
-                    (
-                        pTe->hdr.right - 4 - GOL_EMBOSS_SIZE - GetTextWidth(pTe->pTeOutput, pTe->pDisplayFont),
-                        pTe->hdr.top + GOL_EMBOSS_SIZE
-                    );
-                }
-            }
-            else if(GetState(pTe, TE_UPDATE_TEXT))
-            {
+					// fill the area with '*' character so we use the width of this character
+					MoveTo
+					(
+						pTe->hdr.right - 4 - GOL_EMBOSS_SIZE - (GetTextWidth(hideChar, pTe->pDisplayFont) * (pTe->CurrentLength)),
+						pTe->hdr.top + GOL_EMBOSS_SIZE
+					);
+				}
+				else
+				{
+					MoveTo
+					(
+						pTe->hdr.right - 4 - GOL_EMBOSS_SIZE - GetTextWidth(pTe->pTeOutput, pTe->pDisplayFont),
+						pTe->hdr.top + GOL_EMBOSS_SIZE
+					);
+				}
 
-                // erase the current text by drawing a bar over the edit box area
-                SetColor(pTe->hdr.pGolScheme->Color1);
-                Bar
-                (
-                    pTe->hdr.left + GOL_EMBOSS_SIZE,
-                    pTe->hdr.top + GOL_EMBOSS_SIZE,
-                    pTe->hdr.right - GOL_EMBOSS_SIZE,
-                    pTe->hdr.top + GOL_EMBOSS_SIZE + GetTextHeight(pTe->pDisplayFont)
-                );
+				counter = 0;
+				state = TE_UPDATE_STRING;
+                // add a break here to force a check of IsDeviceBusy() so when last Bar() function is still 
+                // ongoing it will wait for it to finish.
+                break;
 
-                // we have to make sure we finish the Bar() first before we continue.
-                state = TE_WAIT_ERASE_EBOX_AREA;
-                goto te_wait_erase_ebox_area;
-            }
-            else
-            {
-                SetClip(0); //reset the clipping
-                state = TE_START;
-                return (1);
-            }
+			case TE_UPDATE_STRING:
 
-            counter = 0;
-            state = TE_UPDATE_STRING;
-            goto te_update_string;
+				//output the text
+				SetColor(pTe->hdr.pGolScheme->TextColor1);
+				SetFont(pTe->pDisplayFont);
 
-        case TE_WAIT_ERASE_EBOX_AREA:
-            te_wait_erase_ebox_area : if(IsDeviceBusy()) return (0);
+				// this is manually doing the OutText() function but with the capability to replace the
+				// characters to the * character when hide echo is enabled.							
+				XcharTmp = *((pTe->pTeOutput) + counter);
+				if(XcharTmp < (XCHAR)15)
+				{
 
-            // check if the command given is delete a character
-            if(pTe->pActiveKey->command == TE_DELETE_COM)
-            {
-                *(pTe->pTeOutput + (--pTe->CurrentLength)) = 0;
-            }
+					// update is done time to return to start and exit with success
+					SetClip(0); //reset the clipping								
+					state = TE_START;
+					return (1);
+				}
+				else
+				{
+					if(GetState(pTe, TE_ECHO_HIDE))
+						OutChar(0x2A);
+					else
+						OutChar(XcharTmp);
+					state = TE_UPDATE_CHARACTERS;
+				}
 
-            // position the cursor to the start of string rendering
-            // notice that we need to remove the characters first before we position the cursor when
-            // deleting characters
-            if(GetState(pTe, TE_ECHO_HIDE))
-            {
-
-                // fill the area with '*' character so we use the width of this character
-                MoveTo
-                (
-                    pTe->hdr.right - 4 - GOL_EMBOSS_SIZE - (GetTextWidth(hideChar, pTe->pDisplayFont) * (pTe->CurrentLength)),
-                    pTe->hdr.top + GOL_EMBOSS_SIZE
-                );
-            }
-            else
-            {
-                MoveTo
-                (
-                    pTe->hdr.right - 4 - GOL_EMBOSS_SIZE - GetTextWidth(pTe->pTeOutput, pTe->pDisplayFont),
-                    pTe->hdr.top + GOL_EMBOSS_SIZE
-                );
-            }
-
-            counter = 0;
-            state = TE_UPDATE_STRING;
-
-        case TE_UPDATE_STRING:
-            te_update_string :
-
-            //output the text
-            SetColor(pTe->hdr.pGolScheme->TextColor1);
-            SetFont(pTe->pDisplayFont);
-
-            // this is manually doing the OutText() function but with the capability to replace the
-            // characters to the * character when hide echo is enabled.							
-            XcharTmp = *((pTe->pTeOutput) + counter);
-            if(XcharTmp < (XCHAR)15)
-            {
-
-                // update is done time to return to start and exit with success
-                SetClip(0); //reset the clipping								
-                state = TE_START;
-                return (1);
-            }
-            else
-            {
-                if(GetState(pTe, TE_ECHO_HIDE))
-                    OutChar(0x2A);
-                else
-                    OutChar(XcharTmp);
-                state = TE_UPDATE_CHARACTERS;
-            }
-
-        case TE_UPDATE_CHARACTERS:
-            if(IsDeviceBusy()) return (0);
-            counter++;
-            state = TE_UPDATE_STRING;
-            goto te_update_string;
-    }                       //end switch
-
-    return (1);
-}                           //end TeDraw()
+			case TE_UPDATE_CHARACTERS:
+				if(IsDeviceBusy()) return (0);
+				counter++;
+				state = TE_UPDATE_STRING;
+				break;
+		} //end switch
+	} // end of while(1)
+} //end TeDraw()
 
 /*********************************************************************
 * Function: TeTranslateMsg(void *pObj, GOL_MSG *pMsg)
@@ -576,8 +581,7 @@ WORD TeTranslateMsg(void *pObj, GOL_MSG *pMsg)
         #ifdef USE_TOUCHSCREEN
 
     //find the total number of keys
-    NumberOfKeys = (pTe->horizontalKeys) *
-    (pTe->verticalKeys);
+    NumberOfKeys = (pTe->horizontalKeys) * (pTe->verticalKeys);
     param1 = pMsg->param1;
     param2 = pMsg->param2;
 
@@ -805,7 +809,7 @@ void TeSetBuffer(TEXTENTRY *pTe, XCHAR *pText, WORD MaxSize)
     {
         if(count >= MaxSize)
             break;
-        *pTemp++;
+        pTemp++;
         count++;
     }
 
@@ -950,14 +954,11 @@ KEYMEMBER *TeCreateKeyMembers(TEXTENTRY *pTe, XCHAR *pText[])
     KEYMEMBER   *pTail = NULL;
 
     // determine starting positions of the keys
-    keyTop = pTe->hdr.top +
-    GetTextHeight(pTe->pDisplayFont) +
-    (GOL_EMBOSS_SIZE << 1);
-    keyLeft = pTe->hdr.left;    // + GOL_EMBOSS_SIZE;
+    keyTop = pTe->hdr.top + GetTextHeight(pTe->pDisplayFont) + (GOL_EMBOSS_SIZE << 1);
+    keyLeft = pTe->hdr.left;    
 
     //calculate the total number of keys, and width and height of each key
-    NumberOfKeys = pTe->horizontalKeys *
-    pTe->verticalKeys;
+    NumberOfKeys = pTe->horizontalKeys * pTe->verticalKeys;
     width = (pTe->hdr.right - keyLeft + 1) / pTe->horizontalKeys;
     height = (pTe->hdr.bottom - keyTop + 1) / pTe->verticalKeys;
 
@@ -972,7 +973,10 @@ KEYMEMBER *TeCreateKeyMembers(TEXTENTRY *pTe, XCHAR *pText[])
             //get storage for new entry
             pKl = (KEYMEMBER *)GFX_malloc(sizeof(KEYMEMBER));
             if(pKl == NULL)
+			{
+				TeDelKeyMembers(pTe);
                 return (NULL);
+			}	
             if(pTe->pHeadOfList == NULL)
                 pTe->pHeadOfList = pKl;
             if(pTail == NULL)
@@ -1012,9 +1016,9 @@ KEYMEMBER *TeCreateKeyMembers(TEXTENTRY *pTe, XCHAR *pText[])
                 // Calculate the text width & height
                 pKl->textWidth = GetTextWidth(pKl->pKeyName, pTe->hdr.pGolScheme->pFont);
                 pKl->textHeight = GetTextHeight(pTe->hdr.pGolScheme->pFont);
-            }                   //end if
-        }                       //end for	
-    }                           //end for	
+            } //end if
+        } //end for	
+    } //end for	
 
     pTail->pNextKey = NULL;
 
